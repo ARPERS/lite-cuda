@@ -4,7 +4,7 @@
 using namespace std;
 
 __device__
-void AES_encrypt_gpu(const uint *pt, uint *ct, uint *rek, uint Nr) {
+void AES_encrypt_gpu(uint *ct, const uint *pt, uint *rek, uint Nr) {
 
     // int tid = blockIdx.x * blockDim.x + threadIdx.x;
     uint s0, s1, s2, s3, t0, t1, t2, t3;

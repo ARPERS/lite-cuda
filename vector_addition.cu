@@ -1,15 +1,15 @@
 #include <stdio.h>
+#include <typeinfo>
 
-__global__ void vectorAddition(float *result, float *a, float *b, int N){
+__global__ void vectorAddition(uint *result, uint *a, uint *b, int N){
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     int stride = blockDim.x * gridDim.x;
-
     for(int i = index; i < N; i += stride){
         result[i] = a[i] + b[i];
     }
 }
 
-void check(float target, float *array, int N){
+void check(uint target, uint *array, int N){
     bool flag = false;
     for(int i = 0; i < N; i++){
         if(array[i] != target){
@@ -25,13 +25,13 @@ void check(float target, float *array, int N){
 
 int main() {
     int N = 20; // vector length
-    size_t size = N * sizeof(float);
+    size_t size = N * sizeof(uint);
 
-    float *a = new float[N];
-    float *b = new float[N];
-    float *c = new float[N];
+    uint *a = new uint[N];
+    uint *b = new uint[N];
+    uint *c = new uint[N];
 
-    float *d_a, *d_b, *d_c;
+    uint *d_a, *d_b, *d_c;
     cudaMalloc(&d_a, size);
     cudaMalloc(&d_b, size);
     cudaMalloc(&d_c, size);
@@ -42,18 +42,10 @@ int main() {
         b[i] = 3.0;
     }
 
-
     cudaMemcpy(d_a, a, size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_b, b, size, cudaMemcpyHostToDevice);
-
   
-    int threadsPerBlock;
-    int numberOfBlocks;
-
-    threadsPerBlock = 16;
-    numberOfBlocks = (N + threadsPerBlock - 1) / threadsPerBlock;
-
-    vectorAddition<<<numberOfBlocks, threadsPerBlock>>>(d_c, d_a, d_b, N);
+    vectorAddition<<<1, N>>>(d_c, d_a, d_b, N);
     
     cudaMemcpy(c, d_c, size, cudaMemcpyDeviceToHost);
 

@@ -1,6 +1,6 @@
 #include "tabs/AES_cpu.tab"
 
-void AES_decrypt_cpu(const uint *ct, uint *pt, uint *rdk, uint Nr) {
+void AES_decrypt_cpu(uint *pt, const uint *ct, uint *rdk, uint Nr) {
     uint s0, s1, s2, s3, t0, t1, t2, t3;
     /*
      * map byte array block to cipher state

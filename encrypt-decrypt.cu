@@ -2,11 +2,7 @@
 #include <iostream>
 #include <typeinfo>
 
-#include "AES/AES_encrypt_cpu.cpp"
-#include "AES/AES_encrypt_gpu.cu"
-#include "AES/AES_decrypt_cpu.cpp"
-#include "AES/AES_decrypt_gpu.cu"
-#include "AES/AES.cu"
+#include "lite.cu"
 
 using namespace std;
 
@@ -14,58 +10,8 @@ __global__ void helloWorld(){
     printf("Halo from GPU!\n");
 }
 
-uint32_t floatToUInt(float value) {
-  union {
-    float floatValue;
-    uint32_t uintValue;
-  } u;
-
-  u.floatValue = value;
-  return u.uintValue;
-}
-
-float uintToFloat(uint32_t value) {
-  union {
-    float floatValue;
-    uint32_t uintValue;
-  } u;
-
-  u.uintValue = value;
-  return u.floatValue;
-}
-
-__global__ void AESEncryptGPU(uint *pt, const uint *ct, uint *rek, uint Nr){
-      AES_encrypt_gpu(pt, ct, rek, Nr);
-}
-
-void AESEncryptCPU(uint *pt, const uint *ct, uint *rek, uint Nr){
-    AES_encrypt_cpu(pt, ct, rek, Nr);
-}
-
-void AESDecryptCPU(uint *pt, const uint *ct, uint *rek, uint Nr){
-      AES_decrypt_cpu(pt, ct, rek, Nr);
-}
-
-__global__ void AESDecryptGPU(uint *ct, const uint *pt, uint *rek, uint Nr){
-      AES_decrypt_gpu(ct, pt, rek, Nr);
-}
-
-__global__ void setVal(uint *arr, int i, uint v){
-    arr[i] = v;
-}
-
-#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
-{
-   if (code != cudaSuccess) 
-   {
-      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-      if (abort) exit(code);
-   }
-}
-
 int main() {
-    int N = 4; // vector length
+    int N = 8; // vector length
 
     // key declaration
     uchar key[] = { 0x00, 0x00, 0x00, 0x00,
@@ -84,6 +30,7 @@ int main() {
     uint *y = (uint*)malloc(bytes);
     uint *z = (uint*)malloc(bytes);
     x[0] = 123; x[1] = 222; x[2]=989; x[3]=275; 
+    x[4] = 9123; x[5] = 9222; x[6]=9989; x[7]=9275; 
 
     // Send Key to GPU
     uint *d_e_sched;
@@ -94,12 +41,16 @@ int main() {
     gpuErrchk( cudaMemcpy(d_e_sched, e_sched, key_size, cudaMemcpyHostToDevice) );
     gpuErrchk( cudaMemcpy(d_d_sched, d_sched, key_size, cudaMemcpyHostToDevice) );
 
-    // CPU
-    cout << "CPU Pln Text: "<< x[0] << " " << x[1] << " " << x[2] << " " << x[3] << endl;
-    AESEncryptCPU(y, x, e_sched, Nr);
-    cout << "CPU Pln Text: "<< y[0] << " " << y[1] << " " << y[2] << " " << y[3] << endl;
-    AESDecryptCPU(z, y, d_sched, Nr);
-    cout << "CPU Pln Text: "<< z[0] << " " << z[1] << " " << z[2] << " " << z[3] << endl;
+    // CPU Encrypt
+    cout << "CPU Pln Text: "; for(int i=0;i<N;i++) cout << x[i] << " "; cout << endl;
+    for(int i=0; i<N; i+=4)
+      ltEncryptCPU(y+i, x+i, e_sched, Nr);
+      
+    // CPU Decrypt
+    cout << "CPU Pln Text: "; for(int i=0;i<N;i++) cout << y[i] << " "; cout << endl;
+    for(int i=0; i<N; i+=4)
+      ltDecryptCPU(z+i, y+i, d_sched, Nr);
+    cout << "CPU Pln Text: "; for(int i=0;i<N;i++) cout << z[i] << " "; cout << endl;
    
     cout << "-----------\n";
 
@@ -111,18 +62,23 @@ int main() {
     gpuErrchk( cudaMalloc(&d_z, bytes) );
 
     cudaMemcpy(x, d_x, bytes, cudaMemcpyDeviceToHost);
-    cout << "GPU Pln Text: " << x[0] << " " << x[1] << " " << x[2] << " " << x[3] << endl;
+    cout << "GPU Chp Text: "; for(int i=0;i<N;i++) cout << x[i] << " "; cout << endl;
 
-    AESEncryptGPU<<< 1, 1 >>>(d_y, d_x, d_e_sched, Nr);
+    // GPU Encrypt
+    ltEncryptGPU<<< 1, N/4 >>>(d_y, d_x, d_e_sched, Nr);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
-   
-    cudaMemcpy(y, d_y, bytes, cudaMemcpyDeviceToHost);
-    cout << "GPU Chp Text: " << y[0] << " " << y[1] << " " << y[2] << " " << y[3] << endl;
+
+    gpuErrchk( cudaMemcpy(y, d_y, bytes, cudaMemcpyDeviceToHost) );
+    cout << "GPU Chp Text: "; for(int i=0;i<N;i++) cout << y[i] << " "; cout << endl;
     
-    AESDecryptGPU<<<1,1>>>(d_z, d_y, d_d_sched, Nr);
-    cudaMemcpy(z, d_z, bytes, cudaMemcpyDeviceToHost);
-    cout << "GPU Pln Text: " << z[0] << " " << z[1] << " " << z[2] << " " << z[3] << endl;
+    // GPU Decrypt
+    ltDecryptGPU<<<1,N/4>>>(d_z, d_y, d_d_sched, Nr);
+    gpuErrchk( cudaPeekAtLastError() );
+    gpuErrchk( cudaDeviceSynchronize() );
+
+    gpuErrchk( cudaMemcpy(z, d_z, bytes, cudaMemcpyDeviceToHost) );
+    cout << "GPU Chp Text: "; for(int i=0;i<N;i++) cout << z[i] << " "; cout << endl;
     
     cudaFree(d_x);
     cudaFree(d_y);

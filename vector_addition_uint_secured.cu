@@ -46,6 +46,4 @@ int main() {
     ltVectorAddition(c, a, b, N, e_sched, d_sched, Nr);
     
     check(40, c, N);
-
-    return 0;
 }

@@ -66,6 +66,7 @@ void ltDecryptCPU(uint *pt, const uint *ct, uint *rek, uint Nr, int N){
 }
 
 //2. Lite's Vector Addition
+// __global__ vector addition
 template<class T> __global__ void vectorAddition(T *result, T *a, T *b, int N){
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     int stride = blockDim.x * gridDim.x;
@@ -74,6 +75,7 @@ template<class T> __global__ void vectorAddition(T *result, T *a, T *b, int N){
     }
 }
 
+// main LITE's vector addition
 void ltVectorAddition(uint *result, uint *a, uint *b, int N, uint *enc_sched, uint *dec_sched, int Nr, bool is_float){
     // CPU Encrypt
     uint *enc_a = new uint[N];
@@ -151,17 +153,17 @@ void ltVectorAddition(uint *result, uint *a, uint *b, int N, uint *enc_sched, ui
     ltDecryptCPU(result, enc_result, dec_sched, Nr, N);
 }
 
+// for uint array
 void ltVectorAddition(uint *result, uint *a, uint *b, int N, uint *enc_sched, uint *dec_sched, int Nr){
    ltVectorAddition(result, a, b, N, enc_sched, dec_sched, Nr, false);
 }
 
+// for float array
 void ltVectorAddition(float *result, float *a, float *b, int N, uint *enc_sched, uint *dec_sched, int Nr){
 
     // debug
     // printf("BEFORE\n");
     // for(int i = 0; i < N; i++) printf("%f ", a[i]); printf("\n");
-    // for(int i = 0; i < N; i++) printf("%f ", b[i]); printf("\n");
-    // for(int i = 0; i < N; i++) printf("%f ", result[i]); printf("\n");
 
     // Float array to uint array
     uint *uint_a = new uint[N];
@@ -174,7 +176,6 @@ void ltVectorAddition(float *result, float *a, float *b, int N, uint *enc_sched,
     // debug
     // printf("PUNNED to UINT\n");
     // for(int i = 0; i < N; i++) printf("%u ", uint_a[i]); printf("\n");
-    // for(int i = 0; i < N; i++) printf("%u ", uint_b[i]); printf("\n");
 
     ltVectorAddition(uint_result, uint_a, uint_b, N, enc_sched, dec_sched, Nr, true);
 
@@ -182,14 +183,39 @@ void ltVectorAddition(float *result, float *a, float *b, int N, uint *enc_sched,
     uintToFloatCPU(a, uint_a, N);
     uintToFloatCPU(b, uint_b, N);
     uintToFloatCPU(result, uint_result, N);
-    
-    // debug
-    // printf("AFTER\n");
-    // for(int i = 0; i < N; i++) printf("%f ", a[i]); printf("\n");
-    // for(int i = 0; i < N; i++) printf("%f ", b[i]); printf("\n");
-    // for(int i = 0; i < N; i++) printf("%f ", result[i]); printf("\n");
 }
 
 
+//3. LITE's Matrix Multiplication
+// CUDA kernel for matrix multiplication
+__global__ void matrixMultiplication(float *A, float *B, float *C, int N){
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    const int tile_size = 2;
 
+    // Allocate shared memory for tiles
+    __shared__ float As[tile_size][tile_size];
+    __shared__ float Bs[tile_size][tile_size];
 
+    float Cvalue = 0.0f;
+
+    for (int k = 0; k < N / tile_size; ++k){
+        // Load tiles into shared memory
+        As[threadIdx.y][threadIdx.x] = A[row * N + (k * tile_size + threadIdx.x)];
+        Bs[threadIdx.y][threadIdx.x] = B[(k * tile_size + threadIdx.y) * N + col];
+
+        // Synchronize threads to ensure all data is loaded
+        __syncthreads();
+
+        // Perform tile-wise matrix multiplication
+        for (int i = 0; i < tile_size; ++i){
+            Cvalue += As[threadIdx.y][i] * Bs[i][threadIdx.x];
+        }
+
+        // Synchronize threads to ensure all data is used before loading the next tiles
+        __syncthreads();
+    }
+
+    // Store the result in global memory
+    C[row * N + col] = Cvalue;
+}

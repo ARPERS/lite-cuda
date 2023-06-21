@@ -19,30 +19,31 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
       if (abort) exit(code);
    }
 }
-__global__ void setVal(uint *arr, int i, uint v){
-    arr[i] = v;
-}
 
 //0. Utils
+__device__ unsigned int* floatToUint(float  *input){
+    unsigned char  * temp1 = reinterpret_cast<unsigned char  *>(input);       
+    unsigned int  * output = reinterpret_cast<unsigned int  *>(temp1);    
+    return output;
+}
+__device__ float * uintToFloat(unsigned int  *input){
+    unsigned char  * temp1 = reinterpret_cast<unsigned char  *>(input);       
+    float  * output = reinterpret_cast<float  *>(temp1);    
+    return output;
+}
 void floatToUintCPU(uint *dest, const float *source, int N) {
     for(int i=0; i<N; i++) memcpy(&dest[i], &source[i], sizeof(float));
-}
-void floatToUintGPU(uint *dest, const float *source, int N) {
-    for(int i=0; i<N; i++) cudaMemcpy(&dest[i], &source[i], sizeof(float), cudaMemcpyDeviceToDevice);
 }
 void uintToFloatCPU(float *dest, const uint *source, int N) {
     for(int i=0; i<N; i++) memcpy(&dest[i], &source[i], sizeof(uint));
 }
-void uintToFloatGPU(float *dest, const uint *source, int N) {
-    for(int i=0; i<N; i++) cudaMemcpy(&dest[i], &source[i], sizeof(uint), cudaMemcpyDeviceToDevice);
-}
 
 //1. Encrypt-Decrypt Function
-__global__ void ltEncryptGPU(uint *ct, const uint *pt, uint *rek, uint Nr){
+__device__ void ltEncryptGPU(uint *ct, const uint *pt, uint *rek, uint Nr){
     AES_encrypt_gpu(ct, pt, rek, Nr);
 }
 
-__global__ void ltDecryptGPU(uint *pt, const uint *ct, uint *rek, uint Nr){
+__device__ void ltDecryptGPU(uint *pt, const uint *ct, uint *rek, uint Nr){
     AES_decrypt_gpu(pt, ct, rek, Nr);
 }
 
@@ -63,17 +64,39 @@ void ltDecryptCPU(uint *pt, const uint *ct, uint *rek, uint Nr, int N){ // run e
     }
 }
 
-//2. Lite's Vector Addition
-// __global__ vector addition
-template<class T> __global__ void vectorAddition(T *result, T *a, T *b, int N){
+//2. MAIN Lite's Vector Addition
+__global__ void vectorAddition(uint *d_enc_result, uint *d_enc_a, uint *d_enc_b, int N, uint *d_enc_sched, uint *d_dec_sched, int Nr, bool is_float){
     int index = threadIdx.x + blockIdx.x * blockDim.x;
-    int stride = blockDim.x * gridDim.x;
-    for(int i = index; i < N; i += stride){
-      result[i] = a[i] + b[i];
+
+    if(index * 4 < N){
+        uint d_a[4], d_b[4];
+        uint *d_result = new uint[4];
+
+        // GPU Decrypt
+        ltDecryptGPU(d_a, d_enc_a + index*4, d_dec_sched, Nr); 
+        ltDecryptGPU(d_b, d_enc_b + index*4, d_dec_sched, Nr);  
+
+        if(is_float){
+            float *d_f_a = new float[4];
+            float *d_f_b = new float[4];
+            float *d_f_result =new float[4];
+            d_f_a = uintToFloat(d_a);
+            d_f_b = uintToFloat(d_b);
+            for(int i = 0; i < 4; i ++){
+                d_f_result[i] = d_f_a[i] + d_f_b[i];
+            }
+            d_result = floatToUint(d_f_result);
+        }else{
+            for(int i = 0; i < 4; i ++){
+                d_result[i] = d_a[i] + d_b[i];
+            }
+        }
+        // GPU Encrypt
+        ltEncryptGPU(d_enc_result + index*4, d_result, d_enc_sched, Nr);
     }
 }
 
-// main LITE's vector addition
+// wrapper vector addtion CPU-GPU comm.
 void ltVectorAddition(uint *result, uint *a, uint *b, int N, uint *enc_sched, uint *dec_sched, int Nr, bool is_float){
     // CPU Encrypt N elements
     uint *enc_a = new uint[N];
@@ -100,53 +123,9 @@ void ltVectorAddition(uint *result, uint *a, uint *b, int N, uint *enc_sched, ui
     gpuErrchk( cudaMemcpy(d_enc_sched, enc_sched, key_size, cudaMemcpyHostToDevice) );
     gpuErrchk( cudaMemcpy(d_dec_sched, dec_sched, key_size, cudaMemcpyHostToDevice) );
     
-    uint *d_a, *d_b, *d_result;
-    gpuErrchk( cudaMalloc(&d_a, size) );
-    gpuErrchk( cudaMalloc(&d_b, size) );
-    gpuErrchk( cudaMalloc(&d_result, size) );
-    
-    // GPU Decrypt 4 elements each (128 bits)
-    int batch_size = 4;
-    for(int i=0; i<N; i+=batch_size){
-        ltDecryptGPU<<<1, 1>>>(d_a+i, d_enc_a+i, d_dec_sched, Nr); 
-        ltDecryptGPU<<<1, 1>>>(d_b+i, d_enc_b+i, d_dec_sched, Nr);    
-        gpuErrchk( cudaPeekAtLastError() );
-        gpuErrchk( cudaDeviceSynchronize() );
-
-        // GPU Vector Addition
-        if(!is_float){
-            vectorAddition<<<1, 1>>>(d_result+i, d_a+i, d_b+i, batch_size);
-            gpuErrchk( cudaPeekAtLastError() );
-            gpuErrchk( cudaDeviceSynchronize() );
-        }else{
-            float *f_d_a, *f_d_b, *f_d_result; 
-
-            gpuErrchk( cudaMalloc(&f_d_a, batch_size*sizeof(float)) ); 
-            gpuErrchk( cudaMalloc(&f_d_b, batch_size*sizeof(float)) );
-            gpuErrchk( cudaMalloc(&f_d_result, batch_size*sizeof(float)) );
-
-            // type puning uint to float
-            uintToFloatGPU(f_d_a, d_a+i, batch_size);
-            uintToFloatGPU(f_d_b, d_b+i, batch_size);
-            uintToFloatGPU(f_d_result, d_result+i, batch_size);
-
-            vectorAddition<<<1, 4>>>(f_d_result, f_d_a, f_d_b, batch_size);
-            gpuErrchk( cudaPeekAtLastError() );
-            gpuErrchk( cudaDeviceSynchronize() );
-
-            // debug
-            // float *debug_out = new float[N]; cudaMemcpy(debug_out, f_d_result, sizeof(f_d_result), cudaMemcpyDeviceToHost);
-            // for(int i=0;i<N;i++) cout << debug_out[i] << " ";cout <<endl;
-
-            // type puning float to uint
-            floatToUintGPU(d_result+i, f_d_result, batch_size);
-        }
-
-        // GPU Encrypt
-        ltEncryptGPU<<< 1, 1>>>(d_enc_result+i, d_result+i, d_enc_sched, Nr);
-        gpuErrchk( cudaPeekAtLastError() );
-        gpuErrchk( cudaDeviceSynchronize() );
-    }
+    vectorAddition<<<1, N/4>>>(d_enc_result, d_enc_a, d_enc_b, N, d_enc_sched, d_dec_sched, Nr, is_float);
+    gpuErrchk( cudaPeekAtLastError() );
+    gpuErrchk( cudaDeviceSynchronize() );
 
     // GPU -> CPU
     gpuErrchk( cudaMemcpy(enc_result, d_enc_result, size, cudaMemcpyDeviceToHost) );

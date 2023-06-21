@@ -21,7 +21,7 @@ void check(float target, float *array, int N){
 }
 
 int main() {
-    int N = 8; // vector length
+    int N = 12; // vector length
 
     float *a = new float[N];
     float *b = new float[N];

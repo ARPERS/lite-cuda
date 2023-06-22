@@ -3,11 +3,11 @@
 
 #include "lite.cu"
 
-#define TILE_SIZE 2
+#define TILE_SIZE 4
 
 using namespace std;
 
-void check(float target, float *a, int N){
+void check(uint target, uint *a, int N){
     bool flag = false;
     for(int i = 0; i < N * N; ++i){
         if(a[i] != target){
@@ -22,41 +22,32 @@ void check(float target, float *a, int N){
 }
 
 int main(){
-    int N = 4;  // Matrix size
-    int size = N * N * sizeof(float);
+    int N = 8;  // Matrix size
+    int size = N * N * sizeof(uint);
 
     // Allocate host 
-    float *h_A = new float[N * N];
-    float *h_B = new float[N * N];
-    float *h_C = new float[N * N];
-
-    // Allocate device
-    float *d_A, *d_B, *d_C;
-    cudaMalloc(&d_A, size);
-    cudaMalloc(&d_B, size);
-    cudaMalloc(&d_C, size);
+    uint *h_A = new uint[N * N];
+    uint *h_B = new uint[N * N];
+    uint *h_C = new uint[N * N];
 
     // initialize
     for (int i = 0; i < N * N; ++i){
-        h_A[i] = 2.0;
-        h_B[i] = 3.0;
+        h_A[i] = 2;
+        h_B[i] = 4;
     }
 
-    // host to device
-    cudaMemcpy(d_A, h_A, size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_B, h_B, size, cudaMemcpyHostToDevice);
+    uchar key[] = { 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00 };
+    uint keySize = 16;
+    int Nr=10;
+    uint e_sched[4*(MAXNR + 1)];
+    uint d_sched[4*(MAXNR + 1)];
+    makeKey(key, keySize << 3, DIR_BOTH, e_sched, d_sched, Nr);
 
-    // Define grid and block dimensions
-    dim3 blockSize(TILE_SIZE, TILE_SIZE);
-    dim3 gridSize((N + TILE_SIZE - 1) / TILE_SIZE, (N + TILE_SIZE - 1) / TILE_SIZE);
-    matrixMultiplication<<<gridSize, blockSize>>>(d_A, d_B, d_C, N);
+    ltMatrixMultiplication(h_C, h_A, h_B, N, e_sched, d_sched, Nr);
 
-    // device to host
-    cudaMemcpy(h_C, d_C, size, cudaMemcpyDeviceToHost);
-
-    check(2*3*N, h_C, N);    
-
-    cudaFree(d_A);
-    cudaFree(d_B);
-    cudaFree(d_C);
+    for(int i=0;i<N*N;i++) cout << h_C[i] << " " ;
+    check(2*4*N, h_C, N);    
 }

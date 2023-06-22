@@ -155,34 +155,90 @@ void ltVectorAddition(float *result, float *a, float *b, int N, uint *enc_sched,
 
 //3. LITE's Matrix Multiplication
 // CUDA kernel for matrix multiplication
-__global__ void matrixMultiplication(float *A, float *B, float *C, int N){
+__global__ void matrixMultiplication(uint *C, uint *A, uint *B, int N, uint *enc_sched, uint *dec_sched, int Nr, bool is_float){
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
-    const int tile_size = 2;
+    const int tile_size = 4;
 
     // Allocate shared memory for tiles
-    __shared__ float As[tile_size][tile_size];
-    __shared__ float Bs[tile_size][tile_size];
+    __shared__ uint As[tile_size][tile_size];
+    __shared__ uint Bs[tile_size][tile_size];
 
-    float Cvalue = 0.0f;
+    uint Cvalue = 0;
 
     for (int k = 0; k < N / tile_size; ++k){
         // Load tiles into shared memory
         As[threadIdx.y][threadIdx.x] = A[row * N + (k * tile_size + threadIdx.x)];
         Bs[threadIdx.y][threadIdx.x] = B[(k * tile_size + threadIdx.y) * N + col];
-
+    
         // Synchronize threads to ensure all data is loaded
         __syncthreads();
+    }
 
+    
+    for (int k = 0; k < N / tile_size; ++k){
         // Perform tile-wise matrix multiplication
         for (int i = 0; i < tile_size; ++i){
             Cvalue += As[threadIdx.y][i] * Bs[i][threadIdx.x];
         }
-
         // Synchronize threads to ensure all data is used before loading the next tiles
         __syncthreads();
     }
 
     // Store the result in global memory
     C[row * N + col] = Cvalue;
+}
+
+void ltMatrixMultiplication(uint *result, uint *A, uint *B, int N, uint *enc_sched, uint *dec_sched, int Nr){
+    const int TILE_SIZE = 4;
+
+    uint *enc_a = new uint[N*N];
+    uint *enc_b = new uint[N*N];
+    uint *enc_result = new uint[N*N];
+    size_t size = sizeof(uint)*N*N;
+    // ltEncryptCPU(enc_a, A, enc_sched, Nr, N*N);
+    // ltEncryptCPU(enc_b, B, enc_sched, Nr, N*N);
+
+    // CPU -> GPU: Data
+    uint *d_enc_a, *d_enc_b, *d_enc_result;
+    gpuErrchk( cudaMalloc(&d_enc_a, size) );
+    gpuErrchk( cudaMalloc(&d_enc_b, size) );
+    gpuErrchk( cudaMalloc(&d_enc_result, size) );
+
+    gpuErrchk( cudaMemcpy(d_enc_a, A, size, cudaMemcpyHostToDevice) ); // TOY tolong dihapus
+    gpuErrchk( cudaMemcpy(d_enc_b, B, size, cudaMemcpyHostToDevice) ); // TOY tolong dihapus
+
+    uint *tmp = new uint[N*N];  // debugger
+    gpuErrchk( cudaMemcpy(tmp, d_enc_b, size, cudaMemcpyDeviceToHost) ); 
+    for(int i=0;i<N*N;i++) printf("%u ", tmp[i]); printf("\n");
+
+    // gpuErrchk( cudaMemcpy(d_enc_a, enc_a, size, cudaMemcpyHostToDevice) );
+    // gpuErrchk( cudaMemcpy(d_enc_b, enc_b, size, cudaMemcpyHostToDevice) );
+
+    // CPU -> GPU: Key
+    uint *d_enc_sched;
+    uint *d_dec_sched;
+    size_t key_size = (4*(MAXNR + 1)) * sizeof(uint);
+    gpuErrchk( cudaMalloc(&d_enc_sched, key_size) );
+    gpuErrchk( cudaMalloc(&d_dec_sched, key_size) );
+    gpuErrchk( cudaMemcpy(d_enc_sched, enc_sched, key_size, cudaMemcpyHostToDevice) );
+    gpuErrchk( cudaMemcpy(d_dec_sched, dec_sched, key_size, cudaMemcpyHostToDevice) );
+
+    // Define grid and block dimensions
+    dim3 blockSize(TILE_SIZE, TILE_SIZE);
+    dim3 gridSize(N / TILE_SIZE, N / TILE_SIZE);
+
+    matrixMultiplication<<<gridSize, blockSize>>>(d_enc_result, d_enc_a, d_enc_b, N, d_enc_sched, d_dec_sched, Nr, false);
+    gpuErrchk( cudaPeekAtLastError() );
+    gpuErrchk( cudaDeviceSynchronize() );
+
+    // uint *tmp = new uint[N*N];  // debugger
+    gpuErrchk( cudaMemcpy(tmp, d_enc_result, size, cudaMemcpyDeviceToHost) ); 
+    for(int i=0;i<N*N;i++) printf("%u ", tmp[i]); printf("\n");
+
+    // GPU -> CPU
+    gpuErrchk( cudaMemcpy(result, d_enc_result, size, cudaMemcpyDeviceToHost) );
+
+    // CPU Decrypt
+    // ltDecryptCPU(result, enc_result, dec_sched, Nr, N*N);
 }

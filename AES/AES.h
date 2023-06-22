@@ -82,16 +82,6 @@ typedef unsigned int    uint;   /* assuming sizeof(uint) == 4 */
 #define TTABLE 1024
 #endif
 
-__device__
-void AES_encrypt_gpu(const uint *pt, uint *ct, uint *rek, uint Nr);
-
-void AES_encrypt_cpu(const uint *pt, uint *ct, uint *rek, uint Nr);
-
-// __device__
-// void AES_decrypt(const uint *ct, uint *pt, uint *rdk, uint Nr);
-
-void AES_encrypt_single(const uint *pt, uint *ct, uint *rek, uint Nr, uint size);
-
 class AES: public BlockCipher {
 
 public:

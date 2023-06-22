@@ -39,28 +39,25 @@ void uintToFloatCPU(float *dest, const uint *source, int N) {
 }
 
 //1. Encrypt-Decrypt Function
-__device__ void ltEncryptGPU(uint *ct, const uint *pt, uint *rek, uint Nr){
-    AES_encrypt_gpu(ct, pt, rek, Nr);
+__global__ void ltEncryptGPU(uint *ct, const uint *pt, uint *rek, uint Nr, int N){ // global handle N encryption
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    if(index*4 + 3 < N)
+        AES_encrypt_gpu(ct+index*4, pt+index*4, rek, Nr); // device handle 128 bit encryption
 }
 
-__device__ void ltDecryptGPU(uint *pt, const uint *ct, uint *rek, uint Nr){
-    AES_decrypt_gpu(pt, ct, rek, Nr);
-}
-
-void ltEncryptCPU(uint *ct, const uint *pt, uint *rek, uint Nr){ // encrypt 4 elements pointer+0, +1, +2, +3
-      AES_encrypt_cpu(ct, pt, rek, Nr);
-}
-void ltDecryptCPU(uint *pt, const uint *ct, uint *rek, uint Nr){ // encrypt 4 elements pointer+0, +1, +2, +3
-      AES_decrypt_cpu(pt, ct, rek, Nr);
+__global__ void ltDecryptGPU(uint *pt, const uint *ct, uint *rek, uint Nr, int N){ // global handle N encryption
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    if(index*4 + 3 < N)
+        AES_decrypt_gpu(pt+index*4, ct+index*4, rek, Nr); // device handle 128 bit encryption
 }
 void ltEncryptCPU(uint *ct, const uint *pt, uint *rek, uint Nr, int N){ // run encrypt for all elements
     for(int i=0;i<N;i+=4){
-      ltEncryptCPU(ct+i, pt+i, rek, Nr);
+      AES_encrypt_cpu(ct+i, pt+i, rek, Nr);
     }
 }
 void ltDecryptCPU(uint *pt, const uint *ct, uint *rek, uint Nr, int N){ // run encrypt for all elements
     for(int i=0;i<N;i+=4){
-      ltDecryptCPU(pt+i, ct+i, rek, Nr);
+      AES_decrypt_cpu(pt+i, ct+i, rek, Nr);
     }
 }
 
@@ -73,8 +70,8 @@ __global__ void vectorAddition(uint *d_enc_result, uint *d_enc_a, uint *d_enc_b,
         uint *d_result = new uint[4];
 
         // GPU Decrypt
-        ltDecryptGPU(d_a, d_enc_a + index*4, d_dec_sched, Nr); 
-        ltDecryptGPU(d_b, d_enc_b + index*4, d_dec_sched, Nr);  
+        AES_decrypt_gpu(d_a, d_enc_a + index*4, d_dec_sched, Nr); 
+        AES_decrypt_gpu(d_b, d_enc_b + index*4, d_dec_sched, Nr);  
 
         if(is_float){
             float *d_f_a = new float[4];
@@ -92,7 +89,7 @@ __global__ void vectorAddition(uint *d_enc_result, uint *d_enc_a, uint *d_enc_b,
             }
         }
         // GPU Encrypt
-        ltEncryptGPU(d_enc_result + index*4, d_result, d_enc_sched, Nr);
+        AES_encrypt_gpu(d_enc_result + index*4, d_result, d_enc_sched, Nr);
     }
 }
 
@@ -142,27 +139,16 @@ void ltVectorAddition(uint *result, uint *a, uint *b, int N, uint *enc_sched, ui
 // wrapper vector addtion for float array
 void ltVectorAddition(float *result, float *a, float *b, int N, uint *enc_sched, uint *dec_sched, int Nr){
 
-    // debug
-    // printf("BEFORE\n");
-    // for(int i = 0; i < N; i++) printf("%f ", a[i]); printf("\n");
-
     // Float array to uint array
     uint *uint_a = new uint[N];
     uint *uint_b = new uint[N];
     uint *uint_result = new uint[N];
     floatToUintCPU(uint_a, a, N);
     floatToUintCPU(uint_b, b, N);
-    floatToUintCPU(uint_result, result, N);
-
-    // debug
-    // printf("PUNNED to UINT\n");
-    // for(int i = 0; i < N; i++) printf("%u ", uint_a[i]); printf("\n");
 
     ltVectorAddition(uint_result, uint_a, uint_b, N, enc_sched, dec_sched, Nr, true);
 
     // uint to float
-    uintToFloatCPU(a, uint_a, N);
-    uintToFloatCPU(b, uint_b, N);
     uintToFloatCPU(result, uint_result, N);
 }
 

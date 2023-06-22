@@ -44,12 +44,12 @@ int main() {
     // CPU Encrypt
     cout << "CPU Pln Text: "; for(int i=0;i<N;i++) cout << x[i] << " "; cout << endl;
     for(int i=0; i<N; i+=4)
-      ltEncryptCPU(y+i, x+i, e_sched, Nr);
+      ltEncryptCPU(y+i, x+i, e_sched, Nr, N);
       
     // CPU Decrypt
-    cout << "CPU Pln Text: "; for(int i=0;i<N;i++) cout << y[i] << " "; cout << endl;
+    cout << "CPU Chp Text: "; for(int i=0;i<N;i++) cout << y[i] << " "; cout << endl;
     for(int i=0; i<N; i+=4)
-      ltDecryptCPU(z+i, y+i, d_sched, Nr);
+      ltDecryptCPU(z+i, y+i, d_sched, Nr, N);
     cout << "CPU Pln Text: "; for(int i=0;i<N;i++) cout << z[i] << " "; cout << endl;
    
     cout << "-----------\n";
@@ -62,10 +62,10 @@ int main() {
     gpuErrchk( cudaMalloc(&d_z, bytes) );
 
     cudaMemcpy(x, d_x, bytes, cudaMemcpyDeviceToHost);
-    cout << "GPU Chp Text: "; for(int i=0;i<N;i++) cout << x[i] << " "; cout << endl;
+    cout << "GPU Pln Text: "; for(int i=0;i<N;i++) cout << x[i] << " "; cout << endl;
 
     // GPU Encrypt
-    ltEncryptGPU<<< 1, N/4 >>>(d_y, d_x, d_e_sched, Nr);
+    ltEncryptGPU<<< 1, N/4 >>>(d_y, d_x, d_e_sched, Nr, N);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
 
@@ -73,12 +73,12 @@ int main() {
     cout << "GPU Chp Text: "; for(int i=0;i<N;i++) cout << y[i] << " "; cout << endl;
     
     // GPU Decrypt
-    ltDecryptGPU<<<1,N/4>>>(d_z, d_y, d_d_sched, Nr);
+    ltDecryptGPU<<<1,N/4>>>(d_z, d_y, d_d_sched, Nr, N);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
 
     gpuErrchk( cudaMemcpy(z, d_z, bytes, cudaMemcpyDeviceToHost) );
-    cout << "GPU Chp Text: "; for(int i=0;i<N;i++) cout << z[i] << " "; cout << endl;
+    cout << "GPU Pln Text: "; for(int i=0;i<N;i++) cout << z[i] << " "; cout << endl;
     
     cudaFree(d_x);
     cudaFree(d_y);

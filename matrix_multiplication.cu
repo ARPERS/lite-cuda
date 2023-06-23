@@ -7,22 +7,43 @@
 
 using namespace std;
 
-void check(uint target, uint *a, int N){
+void check(uint *a, uint *b, uint *res, int N){
     bool flag = false;
-    for(int i = 0; i < N * N; ++i){
-        if(a[i] != target){
-            flag = true;
-        }
-    }
+    uint *c = new uint[N*N];
+    for(int i = 0; i < N; ++i) for(int j = 0; j < N; ++j) c[i*N+j] = 0;
+
+    for(int i = 0; i < N; ++i)
+        for(int j = 0; j < N; ++j)
+            for(int k = 0; k < N; ++k){
+                int row_a = i;
+                int col_b = j;
+                int cr_ab = k;
+                c[row_a*N + col_b] += a[row_a*N + cr_ab]*b[cr_ab*N + col_b];
+            }
+    
+    for(int i = 0; i < N; ++i)
+        for(int j = 0; j < N; ++j)
+            if(c[i*N+j]!=res[i*N+j]){
+                flag = true;
+            }
     if(!flag){
         cout << "SUCCESS" << endl;
     }else{
         cout << "FAIL" << endl;
     }
+    printf("ANS: ");
+    for(int i = 0; i < N; ++i)
+        for(int j = 0; j < N; ++j)
+            printf("%u ", c[i*N+j]);
+    printf("\nRES: ");
+    for(int i = 0; i < N; ++i)
+        for(int j = 0; j < N; ++j)
+            printf("%u ", c[i*N+j]);
+    printf("\n");
 }
 
 int main(){
-    int N = 8;  // Matrix size
+    int N = 4;  // Matrix size
     int size = N * N * sizeof(uint);
 
     // Allocate host 
@@ -32,8 +53,8 @@ int main(){
 
     // initialize
     for (int i = 0; i < N * N; ++i){
-        h_A[i] = 2;
-        h_B[i] = 4;
+        h_A[i] = rand()%5+1;
+        h_B[i] = rand()%10;
     }
 
     uchar key[] = { 0x00, 0x00, 0x00, 0x00,
@@ -48,6 +69,5 @@ int main(){
 
     ltMatrixMultiplication(h_C, h_A, h_B, N, e_sched, d_sched, Nr);
 
-    for(int i=0;i<N*N;i++) cout << h_C[i] << " " ;
-    check(2*4*N, h_C, N);    
+    check(h_A, h_B, h_C, N);    
 }

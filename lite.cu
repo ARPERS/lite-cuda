@@ -11,7 +11,9 @@
 
 using namespace std;
 
+///////////////////////////////////////
 //0. Debugging
+///////////////////////////////////////
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true){
    if (code != cudaSuccess){
@@ -20,7 +22,9 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
+///////////////////////////////////////
 //0. Utils
+///////////////////////////////////////
 __device__ unsigned int* floatToUint(float  *input){
     unsigned char  * temp1 = reinterpret_cast<unsigned char  *>(input);       
     unsigned int  * output = reinterpret_cast<unsigned int  *>(temp1);    
@@ -38,7 +42,9 @@ void uintToFloatCPU(float *dest, const uint *source, int N) {
     for(int i=0; i<N; i++) memcpy(&dest[i], &source[i], sizeof(uint));
 }
 
+///////////////////////////////////////
 //1. Encrypt-Decrypt Function
+///////////////////////////////////////
 __global__ void ltEncryptGPU(uint *ct, const uint *pt, uint *rek, uint Nr, int N){ // global handle N encryption
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     if(index*4 + 3 < N)
@@ -61,7 +67,9 @@ void ltDecryptCPU(uint *pt, const uint *ct, uint *rek, uint Nr, int N){ // run e
     }
 }
 
+///////////////////////////////////////
 //2. MAIN Lite's Vector Addition
+///////////////////////////////////////
 __global__ void vectorAddition(uint *d_enc_result, uint *d_enc_a, uint *d_enc_b, int N, uint *d_enc_sched, uint *d_dec_sched, int Nr, bool is_float){
     int index = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -93,7 +101,7 @@ __global__ void vectorAddition(uint *d_enc_result, uint *d_enc_a, uint *d_enc_b,
     }
 }
 
-// wrapper vector addtion CPU-GPU comm.
+// wrapper vector addtion for CPU-GPU comm.
 void ltVectorAddition(uint *result, uint *a, uint *b, int N, uint *enc_sched, uint *dec_sched, int Nr, bool is_float){
     // CPU Encrypt N elements
     uint *enc_a = new uint[N];
@@ -152,10 +160,10 @@ void ltVectorAddition(float *result, float *a, float *b, int N, uint *enc_sched,
     uintToFloatCPU(result, uint_result, N);
 }
 
-
-//3. LITE's Matrix Multiplication
-// CUDA kernel for matrix multiplication
-__global__ void matrixMultiplication(uint *C, uint *A, uint *B, int N, uint *enc_sched, uint *dec_sched, int Nr, bool is_float){
+///////////////////////////////////////
+//3. MAIN LITE's Matrix Multiplication
+///////////////////////////////////////
+__global__ void matrixMultiplication(uint *C, uint *A, uint *B, int N, uint *d_enc_sched, uint *d_dec_sched, int Nr, bool is_float){
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     const int tile_size = 4;
@@ -163,6 +171,7 @@ __global__ void matrixMultiplication(uint *C, uint *A, uint *B, int N, uint *enc
     // Allocate shared memory for tiles
     __shared__ uint As[tile_size][tile_size];
     __shared__ uint Bs[tile_size][tile_size];
+    __shared__ uint Cs[tile_size][tile_size];
 
     uint Cvalue = 0;
 
@@ -173,10 +182,24 @@ __global__ void matrixMultiplication(uint *C, uint *A, uint *B, int N, uint *enc
     
         // Synchronize threads to ensure all data is loaded
         __syncthreads();
-    }
 
-    
-    for (int k = 0; k < N / tile_size; ++k){
+        AES_decrypt_gpu(As[threadIdx.y], As[threadIdx.y], d_dec_sched, Nr); 
+        AES_decrypt_gpu(Bs[threadIdx.y], Bs[threadIdx.y], d_dec_sched, Nr); 
+
+        __syncthreads();
+
+        // debugger
+        // if(threadIdx.x==0 && threadIdx.y==0 && blockIdx.x==1 && blockIdx.y==0){
+        //     printf("----sharedAAA----------------\n");
+        //     printf("%d %d %d | %d %d\n",k,row, col, blockIdx.x, blockIdx.y);
+        //     for(int i=0;i<4*4;i++) printf("%u ", As[i/4][i%4]); printf("\n");
+        //     printf("----sharedBBB----------------\n");
+        //     printf("%d %d %d | %d %d\n",k,row, col, blockIdx.x, blockIdx.y);
+        //     for(int i=0;i<4*4;i++) printf("%u ", Bs[i/4][i%4]); printf("\n");
+        //     printf("--------------------\n");
+        // }
+        // __syncthreads();
+
         // Perform tile-wise matrix multiplication
         for (int i = 0; i < tile_size; ++i){
             Cvalue += As[threadIdx.y][i] * Bs[i][threadIdx.x];
@@ -185,19 +208,43 @@ __global__ void matrixMultiplication(uint *C, uint *A, uint *B, int N, uint *enc
         __syncthreads();
     }
 
-    // Store the result in global memory
-    C[row * N + col] = Cvalue;
-}
+    Cs[threadIdx.y][threadIdx.x] = Cvalue;
+    
+    __syncthreads();
 
-void ltMatrixMultiplication(uint *result, uint *A, uint *B, int N, uint *enc_sched, uint *dec_sched, int Nr){
+    // debugger
+    // if(threadIdx.x==0 && threadIdx.y==0 && blockIdx.x==1 && blockIdx.y==0){
+    //     printf("----sharedA----------------\n");
+    //     printf("%u %d %d\n", Cvalue, row, col);
+    //     for(int i=0;i<4*4;i++) printf("%u ", Cs[i/4][i%4]); printf("\n");
+    //     printf("--------------------\n");
+    // }
+    
+    AES_encrypt_gpu(Cs[threadIdx.y], Cs[threadIdx.y], d_enc_sched, Nr); 
+
+    // Store the encrypted result in global memory
+    C[row * N + col] = Cs[threadIdx.y][threadIdx.x];
+}
+// wrapper matrix multiplication for CPU-GPU comm.
+void ltMatrixMultiplication(uint *result, uint *A, uint *B, int N, uint *enc_sched, uint *dec_sched, int Nr, bool is_float){
     const int TILE_SIZE = 4;
 
     uint *enc_a = new uint[N*N];
     uint *enc_b = new uint[N*N];
     uint *enc_result = new uint[N*N];
     size_t size = sizeof(uint)*N*N;
-    // ltEncryptCPU(enc_a, A, enc_sched, Nr, N*N);
-    // ltEncryptCPU(enc_b, B, enc_sched, Nr, N*N);
+
+    printf("----A ORI----------------\n");
+    for(int i=0;i<N*N;i++) printf("%u ", A[i]); printf("\n");
+    printf("-------------------------\n");
+
+    // CPU Encrypt NxN elements
+    ltEncryptCPU(enc_a, A, enc_sched, Nr, N*N); // 1569278040 1601824701 1981154377 2658617865 
+    ltEncryptCPU(enc_b, B, enc_sched, Nr, N*N); // 2470275539 2466676860 4273068392 1827505746
+
+     printf("----A Encrypted----------\n");
+    for(int i=0;i<N*N;i++) printf("%u ", enc_a[i]); printf("\n");
+    printf("--------------------------\n");
 
     // CPU -> GPU: Data
     uint *d_enc_a, *d_enc_b, *d_enc_result;
@@ -205,15 +252,14 @@ void ltMatrixMultiplication(uint *result, uint *A, uint *B, int N, uint *enc_sch
     gpuErrchk( cudaMalloc(&d_enc_b, size) );
     gpuErrchk( cudaMalloc(&d_enc_result, size) );
 
-    gpuErrchk( cudaMemcpy(d_enc_a, A, size, cudaMemcpyHostToDevice) ); // TOY tolong dihapus
-    gpuErrchk( cudaMemcpy(d_enc_b, B, size, cudaMemcpyHostToDevice) ); // TOY tolong dihapus
+    gpuErrchk( cudaMemcpy(d_enc_a, enc_a, size, cudaMemcpyHostToDevice) );
+    gpuErrchk( cudaMemcpy(d_enc_b, enc_b, size, cudaMemcpyHostToDevice) );
 
     uint *tmp = new uint[N*N];  // debugger
-    gpuErrchk( cudaMemcpy(tmp, d_enc_b, size, cudaMemcpyDeviceToHost) ); 
+    gpuErrchk( cudaMemcpy(tmp, d_enc_a, size, cudaMemcpyDeviceToHost) ); 
+    printf("----A FROM GPU------------\n");
     for(int i=0;i<N*N;i++) printf("%u ", tmp[i]); printf("\n");
-
-    // gpuErrchk( cudaMemcpy(d_enc_a, enc_a, size, cudaMemcpyHostToDevice) );
-    // gpuErrchk( cudaMemcpy(d_enc_b, enc_b, size, cudaMemcpyHostToDevice) );
+    printf("----------------------------\n");
 
     // CPU -> GPU: Key
     uint *d_enc_sched;
@@ -232,13 +278,31 @@ void ltMatrixMultiplication(uint *result, uint *A, uint *B, int N, uint *enc_sch
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
 
-    // uint *tmp = new uint[N*N];  // debugger
-    gpuErrchk( cudaMemcpy(tmp, d_enc_result, size, cudaMemcpyDeviceToHost) ); 
-    for(int i=0;i<N*N;i++) printf("%u ", tmp[i]); printf("\n");
-
     // GPU -> CPU
-    gpuErrchk( cudaMemcpy(result, d_enc_result, size, cudaMemcpyDeviceToHost) );
+    gpuErrchk( cudaMemcpy(enc_result, d_enc_result, size, cudaMemcpyDeviceToHost) );
+
+    printf("----Result Encrypted from GPU-------\n");
+    for(int i=0;i<8*8;i++) printf("%u ", enc_result[i]); printf("\n");
+    printf("------------------------------------\n");
 
     // CPU Decrypt
-    // ltDecryptCPU(result, enc_result, dec_sched, Nr, N*N);
+    ltDecryptCPU(result, enc_result, dec_sched, Nr, N*N);
+}
+// wrapper matrix multiplication for uint matrix
+void ltMatrixMultiplication(uint *result, uint *A, uint *B, int N, uint *enc_sched, uint *dec_sched, int Nr){
+    ltMatrixMultiplication(result, A, B, N, enc_sched, dec_sched, Nr, false);
+}
+// wrapper matrix multiplication for float matrix
+void ltMatrixMultiplication(float *result, float *A, float *B, int N, uint *enc_sched, uint *dec_sched, int Nr){
+    // Float array to uint array
+    uint *uint_a = new uint[N*N];
+    uint *uint_b = new uint[N*N];
+    uint *uint_result = new uint[N*N];
+    floatToUintCPU(uint_a, A, N*N);
+    floatToUintCPU(uint_b, B, N*N);
+
+    ltMatrixMultiplication(uint_result, uint_a, uint_b, N, enc_sched, dec_sched, Nr, true);
+    
+    // uint to float
+    uintToFloatCPU(result, uint_result, N);
 }

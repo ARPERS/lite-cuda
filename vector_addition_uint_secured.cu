@@ -21,7 +21,7 @@ void check(uint target, uint *array, int N){
 }
 
 int main() {
-    int N = 8; // vector length
+    int N = 6; // vector length
 
     uint *a = new uint[N];
     uint *b = new uint[N];

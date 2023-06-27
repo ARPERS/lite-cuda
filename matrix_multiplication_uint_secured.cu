@@ -38,13 +38,12 @@ void check(uint *a, uint *b, uint *res, int N){
     printf("\nRES: ");
     for(int i = 0; i < N; ++i)
         for(int j = 0; j < N; ++j)
-            printf("%u ", c[i*N+j]);
+            printf("%u ", res[i*N+j]);
     printf("\n");
 }
 
 int main(){
     int N = 4;  // Matrix size
-    int size = N * N * sizeof(uint);
 
     // Allocate host 
     uint *h_A = new uint[N * N];

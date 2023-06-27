@@ -23,7 +23,7 @@ void check(float *a, float *b, float *res, int N){
     
     for(int i = 0; i < N; ++i)
         for(int j = 0; j < N; ++j)
-            if(abs(c[i*N+j]-res[i*N+j]) < 0.000001){
+            if(abs(c[i*N+j]-res[i*N+j]) > 0.00001){
                 flag = true;
             }
     if(!flag){
@@ -38,13 +38,12 @@ void check(float *a, float *b, float *res, int N){
     printf("\nRES: ");
     for(int i = 0; i < N; ++i)
         for(int j = 0; j < N; ++j)
-            printf("%.4f ", c[i*N+j]);
+            printf("%.4f ", res[i*N+j]);
     printf("\n");
 }
 
 int main(){
     int N = 4;  // Matrix size
-    int size = N * N * sizeof(float);
 
     // Allocate host 
     float *h_A = new float[N * N];

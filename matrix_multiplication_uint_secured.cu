@@ -66,7 +66,7 @@ int main(){
     uint d_sched[4*(MAXNR + 1)];
     makeKey(key, keySize << 3, DIR_BOTH, e_sched, d_sched, Nr);
 
-    ltMatrixMultiplication(h_C, h_A, h_B, N, e_sched, d_sched, Nr);
+    ltMatrixMultiplication(h_C, h_A, h_B, N, e_sched, d_sched, Nr, true);
 
     check(h_A, h_B, h_C, N);    
 }

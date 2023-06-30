@@ -13,15 +13,19 @@ void check(float *a, float *b, float *array, int N){
     }
     if(!flag){
         printf("SUCCESS\n");
-        for(int i = 0; i < N; i++) printf("%.3f ", array[i]); printf("\n");
+        // for(int i = 0; i < N; i++) printf("%.3f ", a[i]); printf("\n");
+        // for(int i = 0; i < N; i++) printf("%.3f ", b[i]); printf("\n");
+        // for(int i = 0; i < N; i++) printf("%.3f ", array[i]); printf("\n");
     }else{
         printf("FAIL\n");
-        for(int i = 0; i < N; i++) printf("%.3f ", array[i]); printf("\n");
+        // for(int i = 0; i < N; i++) printf("%.3f ", a[i]); printf("\n");
+        // for(int i = 0; i < N; i++) printf("%.3f ", b[i]); printf("\n");
+        // for(int i = 0; i < N; i++) printf("%.3f ", array[i]); printf("\n");
     }
 }
 
 int main() {
-    int N = 13; // vector length
+    int N = 1000000; // vector length
 
     float *a = new float[N];
     float *b = new float[N];

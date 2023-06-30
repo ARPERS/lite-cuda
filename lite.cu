@@ -45,19 +45,21 @@ __global__ void vectorAddition(uint *d_enc_result, uint *d_enc_a, uint *d_enc_b,
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     int stride = blockDim.x * gridDim.x;
 
+    float *d_f_a = new float[4];
+    float *d_f_b = new float[4];
+    float *d_f_result = new float[4];
+
+    uint d_a[4], d_b[4];
+    uint *d_result = new uint[4];
+
     for(int idx = index; idx*4+3 < N; idx += stride){
         // printf("%d %d %d %d %d %d\n", threadIdx.x, blockIdx.x, index, stride, idx, idx*4+3);
-        uint d_a[4], d_b[4];
-        uint *d_result = new uint[4];
 
         // GPU Decrypt
         AES_decrypt_gpu(d_a, d_enc_a + idx*4, d_dec_sched, Nr); 
         AES_decrypt_gpu(d_b, d_enc_b + idx*4, d_dec_sched, Nr);  
 
         if(is_float){
-            float *d_f_a = new float[4];
-            float *d_f_b = new float[4];
-            float *d_f_result = new float[4];
             d_f_a = uintToFloat(d_a);
             d_f_b = uintToFloat(d_b);
             for(int i = 0; i < 4; i ++){
@@ -107,7 +109,7 @@ void ltVectorAddition(uint *result, uint *a, uint *b, int N, uint *enc_sched, ui
     gpuErrchk( cudaMemcpy(d_dec_sched, dec_sched, key_size, cudaMemcpyHostToDevice) );
     
     // int Ndiv4=N/4;
-    vectorAddition<<<100, 100>>>(d_enc_result, d_enc_a, d_enc_b, N, d_enc_sched, d_dec_sched, Nr, is_float);
+    vectorAddition<<<128, 128>>>(d_enc_result, d_enc_a, d_enc_b, N, d_enc_sched, d_dec_sched, Nr, is_float);
 
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );

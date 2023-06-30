@@ -25,7 +25,7 @@ void check(uint *a, uint *b, uint *array, int N){
 }
 
 int main() {
-    int N = 500000; // vector length
+    int N = 1000000; // vector length
 
     uint *a = new uint[N];
     uint *b = new uint[N];

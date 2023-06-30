@@ -45,34 +45,36 @@ __global__ void vectorAddition(uint *d_enc_result, uint *d_enc_a, uint *d_enc_b,
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     int stride = blockDim.x * gridDim.x;
 
-    float *d_f_a = new float[4];
-    float *d_f_b = new float[4];
-    float *d_f_result = new float[4];
+    if(index*4+3 < N){
+        float *d_f_a = new float[4];
+        float *d_f_b = new float[4];
+        float *d_f_result = new float[4];
 
-    uint d_a[4], d_b[4];
-    uint *d_result = new uint[4];
+        uint d_a[4], d_b[4];
+        uint *d_result = new uint[4];
 
-    for(int idx = index; idx*4+3 < N; idx += stride){
-        // printf("%d %d %d %d %d %d\n", threadIdx.x, blockIdx.x, index, stride, idx, idx*4+3);
+        for(int idx = index; idx*4+3 < N; idx += stride){
+            // printf("%d %d %d %d %d %d\n", threadIdx.x, blockIdx.x, index, stride, idx, idx*4+3);
 
-        // GPU Decrypt
-        AES_decrypt_gpu(d_a, d_enc_a + idx*4, d_dec_sched, Nr); 
-        AES_decrypt_gpu(d_b, d_enc_b + idx*4, d_dec_sched, Nr);  
+            // GPU Decrypt
+            AES_decrypt_gpu(d_a, d_enc_a + idx*4, d_dec_sched, Nr); 
+            AES_decrypt_gpu(d_b, d_enc_b + idx*4, d_dec_sched, Nr);  
 
-        if(is_float){
-            d_f_a = uintToFloat(d_a);
-            d_f_b = uintToFloat(d_b);
-            for(int i = 0; i < 4; i ++){
-                d_f_result[i] = d_f_a[i] + d_f_b[i];
+            if(is_float){
+                d_f_a = uintToFloat(d_a);
+                d_f_b = uintToFloat(d_b);
+                for(int i = 0; i < 4; i ++){
+                    d_f_result[i] = d_f_a[i] + d_f_b[i];
+                }
+                d_result = floatToUint(d_f_result);
+            }else{
+                for(int i = 0; i < 4; i ++){
+                    d_result[i] = d_a[i] + d_b[i];
+                }
             }
-            d_result = floatToUint(d_f_result);
-        }else{
-            for(int i = 0; i < 4; i ++){
-                d_result[i] = d_a[i] + d_b[i];
-            }
+            // GPU Encrypt
+            AES_encrypt_gpu(d_enc_result + idx*4, d_result, d_enc_sched, Nr);
         }
-        // GPU Encrypt
-        AES_encrypt_gpu(d_enc_result + idx*4, d_result, d_enc_sched, Nr);
     }
 }
 // wrapper vector addtion for CPU-GPU comm.
@@ -108,7 +110,6 @@ void ltVectorAddition(uint *result, uint *a, uint *b, int N, uint *enc_sched, ui
     gpuErrchk( cudaMemcpy(d_enc_sched, enc_sched, key_size, cudaMemcpyHostToDevice) );
     gpuErrchk( cudaMemcpy(d_dec_sched, dec_sched, key_size, cudaMemcpyHostToDevice) );
     
-    // int Ndiv4=N/4;
     vectorAddition<<<128, 128>>>(d_enc_result, d_enc_a, d_enc_b, N, d_enc_sched, d_dec_sched, Nr, is_float);
 
     gpuErrchk( cudaPeekAtLastError() );
@@ -123,6 +124,11 @@ void ltVectorAddition(uint *result, uint *a, uint *b, int N, uint *enc_sched, ui
     removePadArray(a, N, padSizeA);
     removePadArray(b, N, padSizeB);
     N -= padSizeA;
+    
+    cudaFree(d_enc_a);
+    cudaFree(d_enc_b);
+    cudaFree(d_enc_sched);
+    cudaFree(d_dec_sched);
 }
 // wrapper vector addtion for uint array
 void ltVectorAddition(uint *result, uint *a, uint *b, int N, uint *enc_sched, uint *dec_sched, int Nr){
@@ -267,7 +273,7 @@ void ltMatrixMultiplication(uint *result, uint *A, uint *B, int N, uint *enc_sch
     }
 }
 // wrapper matrix multiplication for uint matrix
-void ltMatrixMultiplication(uint *result, uint *A, uint *B, int N, uint *enc_sched, uint *dec_sched, int Nr,  bool is_secure = true){
+void ltMatrixMultiplication(uint *result, uint *A, uint *B, int N, uint *enc_sched, uint *dec_sched, int Nr, bool is_secure = true){
     ltMatrixMultiplication(result, A, B, N, enc_sched, dec_sched, Nr, false, is_secure);
 }
 // wrapper matrix multiplication for float matrix

@@ -88,6 +88,7 @@ int main(){
             avg_time += ms_double.count();
 
             check(h_A, h_B, h_C, N);    
+            cudaDeviceReset()
         }
         res_time[tt] = avg_time/runs;
     }

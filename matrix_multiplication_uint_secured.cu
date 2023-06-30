@@ -31,19 +31,19 @@ void check(uint *a, uint *b, uint *res, int N){
     }else{
         cout << "FAIL" << endl;
     }
-    printf("ANS: ");
-    for(int i = 0; i < N; ++i)
-        for(int j = 0; j < N; ++j)
-            printf("%u ", c[i*N+j]);
-    printf("\nRES: ");
-    for(int i = 0; i < N; ++i)
-        for(int j = 0; j < N; ++j)
-            printf("%u ", res[i*N+j]);
-    printf("\n");
+    // printf("ANS: ");
+    // for(int i = 0; i < N; ++i)
+    //     for(int j = 0; j < N; ++j)
+    //         printf("%u ", c[i*N+j]);
+    // printf("\nRES: ");
+    // for(int i = 0; i < N; ++i)
+    //     for(int j = 0; j < N; ++j)
+    //         printf("%u ", res[i*N+j]);
+    // printf("\n");
 }
 
 int main(){
-    int N = 64;  // Matrix size
+    int N = 1000;  // Matrix size
     
     // Allocate host 
     uint *h_A = new uint[N * N];

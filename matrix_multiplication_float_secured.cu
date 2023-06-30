@@ -31,15 +31,15 @@ void check(float *a, float *b, float *res, int N){
     }else{
         cout << "FAIL" << endl;
     }
-    printf("ANS: ");
-    for(int i = 0; i < N; ++i)
-        for(int j = 0; j < N; ++j)
-            printf("%.4f ", c[i*N+j]);
-    printf("\nRES: ");
-    for(int i = 0; i < N; ++i)
-        for(int j = 0; j < N; ++j)
-            printf("%.4f ", res[i*N+j]);
-    printf("\n");
+    // printf("ANS: ");
+    // for(int i = 0; i < N; ++i)
+    //     for(int j = 0; j < N; ++j)
+    //         printf("%.4f ", c[i*N+j]);
+    // printf("\nRES: ");
+    // for(int i = 0; i < N; ++i)
+    //     for(int j = 0; j < N; ++j)
+    //         printf("%.4f ", res[i*N+j]);
+    // printf("\n");
 }
 
 int main(){

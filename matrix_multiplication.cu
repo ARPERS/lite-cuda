@@ -69,9 +69,6 @@ void check(uint *a, uint *b, uint *res, int N){
 
     for(int i = 0; i < N; ++i)
         for(int j = 0; j < N; ++j){
-        
-            printf("HAH? %d %d %d %u %u\n", N, i, j, c[i*N+j], res[i*N+j]);
-
             if(c[i*N+j]!=res[i*N+j]){
                 flag = true;
             }else{

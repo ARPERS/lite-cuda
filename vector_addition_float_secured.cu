@@ -4,10 +4,10 @@
 
 #include "lite.cu"
 
-void check(float target, float *array, int N){
+void check(float *a, float *b, float *array, int N){
     bool flag = false;
     for(int i = 0; i < N; i++){
-        if(array[i] != target){
+        if(array[i] != a[i]+b[i]){
             flag = true;
         }
     }
@@ -39,11 +39,11 @@ int main() {
 
     // initiate
     for(int i = 0; i < N; i++) {
-        a[i] = 3.1;
-        b[i] = 2.5;
+        a[i] = rand()%100 / 10.0;
+        b[i] = rand()%100 / 10.0;
     }
 
     ltVectorAddition(c, a, b, N, e_sched, d_sched, Nr);
     
-    check(5.6, c, N);
+    check(a, b, c, N);
 }

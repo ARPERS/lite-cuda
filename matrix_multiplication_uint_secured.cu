@@ -43,8 +43,8 @@ void check(uint *a, uint *b, uint *res, int N){
 }
 
 int main(){
-    int N = 4;  // Matrix size
-
+    int N = 64;  // Matrix size
+    
     // Allocate host 
     uint *h_A = new uint[N * N];
     uint *h_B = new uint[N * N];
@@ -66,7 +66,7 @@ int main(){
     uint d_sched[4*(MAXNR + 1)];
     makeKey(key, keySize << 3, DIR_BOTH, e_sched, d_sched, Nr);
 
-    ltMatrixMultiplication(h_C, h_A, h_B, N, e_sched, d_sched, Nr, true);
+    ltMatrixMultiplication(h_C, h_A, h_B, N, e_sched, d_sched, Nr, false);
 
-    check(h_A, h_B, h_C, N);    
+    check(h_A, h_B, h_C, N);   
 }

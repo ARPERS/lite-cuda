@@ -4,24 +4,28 @@
 
 #include "lite.cu"
 
-void check(uint target, uint *array, int N){
+void check(uint *a, uint *b, uint *array, int N){
     bool flag = false;
     for(int i = 0; i < N; i++){
-        if(array[i] != target){
+        if(array[i] != a[i]+b[i]){
             flag = true;
         }
     }
     if(!flag){
         printf("SUCCESS\n");
-        for(int i = 0; i < N; i++) printf("%u ", array[i]); printf("\n");
+        // for(int i = 0; i < N; i++) printf("%u ", a[i]); printf("\n");
+        // for(int i = 0; i < N; i++) printf("%u ", b[i]); printf("\n");
+        // for(int i = 0; i < N; i++) printf("%u ", array[i]); printf("\n");
     }else{
         printf("FAIL\n");
-        for(int i = 0; i < N; i++) printf("%u ", array[i]); printf("\n");
+        // for(int i = 0; i < N; i++) printf("%u ", a[i]); printf("\n");
+        // for(int i = 0; i < N; i++) printf("%u ", b[i]); printf("\n");
+        // for(int i = 0; i < N; i++) printf("%u ", array[i]); printf("\n");
     }
 }
 
 int main() {
-    int N = 6; // vector length
+    int N = 500000; // vector length
 
     uint *a = new uint[N];
     uint *b = new uint[N];
@@ -39,11 +43,11 @@ int main() {
 
     // initiate
     for(int i = 0; i < N; i++) {
-        a[i] = 31;
-        b[i] = 9;
+        a[i] = rand()%100;
+        b[i] = rand()%100;
     }
 
     ltVectorAddition(c, a, b, N, e_sched, d_sched, Nr);
     
-    check(40, c, N);
+    check(a, b, c, N);
 }

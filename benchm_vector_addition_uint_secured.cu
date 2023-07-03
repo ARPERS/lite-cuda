@@ -75,7 +75,7 @@ int main() {
                 cudaMalloc(&d_a, sizeof(uint)*N); cudaMemcpy(d_a, a, sizeof(uint)*N, cudaMemcpyHostToDevice);
                 cudaMalloc(&d_b, sizeof(uint)*N); cudaMemcpy(d_b, b, sizeof(uint)*N, cudaMemcpyHostToDevice);
                 cudaMalloc(&d_c, sizeof(uint)*N);
-                vectorAdditionUnsecure<<<512, 128>>>(d_c, d_a, d_b, N);      // unsecure
+                vectorAdditionUnsecure<<<1024, 128>>>(d_c, d_a, d_b, N);      // unsecure
                 cudaMemcpy(c, d_c, sizeof(uint)*N, cudaMemcpyDeviceToHost);
                 cudaFree(d_a); cudaFree(d_b); cudaFree(d_c);
             }else{

@@ -44,36 +44,46 @@ void ltDecryptCPU(uint *pt, const uint *ct, uint *rek, uint Nr, int N){ // run e
 __global__ void vectorAddition(uint *d_enc_result, uint *d_enc_a, uint *d_enc_b, int N, uint *d_enc_sched, uint *d_dec_sched, int Nr, bool is_float){
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     int stride = blockDim.x * gridDim.x;
+    const int buffsize = 128;
+    
+    if(index < N){
+        __shared__ uint d_a[buffsize];
+        __shared__ uint d_b[buffsize];
+        __shared__ uint d_result[buffsize];
+        
+        __shared__ float d_f_a[buffsize];
+        __shared__ float d_f_b[buffsize];
+        __shared__ float d_f_result[buffsize];
 
-    if(index*4+3 < N){
-        float *d_f_a = new float[4];
-        float *d_f_b = new float[4];
-        float *d_f_result = new float[4];
-
-        uint d_a[4], d_b[4];
-        uint *d_result = new uint[4];
-
-        for(int idx = index; idx*4+3 < N; idx += stride){
+        for(int idx = index; idx < N; idx += stride){
             // printf("%d %d %d %d %d %d\n", threadIdx.x, blockIdx.x, index, stride, idx, idx*4+3);
 
             // GPU Decrypt
-            AES_decrypt_gpu(d_a, d_enc_a + idx*4, d_dec_sched, Nr); 
-            AES_decrypt_gpu(d_b, d_enc_b + idx*4, d_dec_sched, Nr);  
+            if(threadIdx.x%4==0){
+                AES_decrypt_gpu(d_a + (idx % buffsize), d_enc_a + idx, d_dec_sched, Nr); 
+                AES_decrypt_gpu(d_b + (idx % buffsize), d_enc_b + idx, d_dec_sched, Nr);  
+            }
+
+            __syncthreads();
 
             if(is_float){
-                d_f_a = uintToFloat(d_a);
-                d_f_b = uintToFloat(d_b);
-                for(int i = 0; i < 4; i ++){
-                    d_f_result[i] = d_f_a[i] + d_f_b[i];
-                }
-                d_result = floatToUint(d_f_result);
+                d_f_a[threadIdx.x] = *uintToFloat(&d_a[threadIdx.x]);
+                d_f_b[threadIdx.x] = *uintToFloat(&d_b[threadIdx.x]);
+                d_f_result[threadIdx.x] = d_f_a[threadIdx.x] + d_f_b[threadIdx.x];
+                d_result[threadIdx.x] = *floatToUint(&d_f_result[threadIdx.x]);
             }else{
-                for(int i = 0; i < 4; i ++){
-                    d_result[i] = d_a[i] + d_b[i];
-                }
+                d_result[threadIdx.x] = d_a[threadIdx.x] + d_b[threadIdx.x];
             }
+
+            __syncthreads();
+            
             // GPU Encrypt
-            AES_encrypt_gpu(d_enc_result + idx*4, d_result, d_enc_sched, Nr);
+            if(threadIdx.x%4==0){
+                AES_encrypt_gpu(d_enc_result + idx, d_result + (idx % buffsize), d_enc_sched, Nr);
+            }
+
+            __syncthreads();
+
         }
     }
 }
@@ -110,7 +120,7 @@ void ltVectorAddition(uint *result, uint *a, uint *b, int N, uint *enc_sched, ui
     gpuErrchk( cudaMemcpy(d_enc_sched, enc_sched, key_size, cudaMemcpyHostToDevice) );
     gpuErrchk( cudaMemcpy(d_dec_sched, dec_sched, key_size, cudaMemcpyHostToDevice) );
     
-    vectorAddition<<<128, 128>>>(d_enc_result, d_enc_a, d_enc_b, N, d_enc_sched, d_dec_sched, Nr, is_float);
+    vectorAddition<<<N/128+1, 128>>>(d_enc_result, d_enc_a, d_enc_b, N, d_enc_sched, d_dec_sched, Nr, is_float);
 
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );

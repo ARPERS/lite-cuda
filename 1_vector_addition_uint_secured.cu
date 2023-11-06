@@ -25,11 +25,11 @@ void check(uint *a, uint *b, uint *array, int N){
 }
 
 int main() {
-    int N = 1000000; // vector length
+    int N = 5; // vector length
 
     uint *a = new uint[N];
     uint *b = new uint[N];
-    uint *c = new uint[N];
+    uint *result = new uint[N];
 
     uchar key[] = { 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00,
@@ -37,17 +37,17 @@ int main() {
                     0x00, 0x00, 0x00, 0x00 };
     uint keySize = 16;
     int Nr=10;
-    uint e_sched[4*(MAXNR + 1)];
-    uint d_sched[4*(MAXNR + 1)];
-    makeKey(key, keySize << 3, DIR_BOTH, e_sched, d_sched, Nr);
+    uint e_key[4*(MAXNR + 1)];
+    uint d_key[4*(MAXNR + 1)];
+    makeKey(key, keySize << 3, DIR_BOTH, e_key, d_key, Nr);
 
     // initiate
     for(int i = 0; i < N; i++) {
-        a[i] = rand()%100;
-        b[i] = rand()%100;
+        a[i] = rand()%30;
+        b[i] = rand()%10;
     }
 
-    ltVectorAddition(c, a, b, N, e_sched, d_sched, Nr);
+    liteAddition(result, a, b, N, e_key, d_key, Nr, 256, 128);
     
-    check(a, b, c, N);
+    check(a, b, result, N);
 }

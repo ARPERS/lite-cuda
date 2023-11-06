@@ -7,9 +7,9 @@
 
 using namespace std;
 
-void check(float *a, float *b, float *res, int N){
+void check(uint *a, uint *b, uint *res, int N){
     bool flag = false;
-    float *c = new float[N*N];
+    uint *c = new uint[N*N];
     for(int i = 0; i < N; ++i) for(int j = 0; j < N; ++j) c[i*N+j] = 0;
 
     for(int i = 0; i < N; ++i)
@@ -23,7 +23,7 @@ void check(float *a, float *b, float *res, int N){
     
     for(int i = 0; i < N; ++i)
         for(int j = 0; j < N; ++j)
-            if(abs(c[i*N+j]-res[i*N+j]) > 0.00001){
+            if(c[i*N+j]!=res[i*N+j]){
                 flag = true;
             }
     if(!flag){
@@ -34,26 +34,26 @@ void check(float *a, float *b, float *res, int N){
     // printf("ANS: ");
     // for(int i = 0; i < N; ++i)
     //     for(int j = 0; j < N; ++j)
-    //         printf("%.4f ", c[i*N+j]);
+    //         printf("%u ", c[i*N+j]);
     // printf("\nRES: ");
     // for(int i = 0; i < N; ++i)
     //     for(int j = 0; j < N; ++j)
-    //         printf("%.4f ", res[i*N+j]);
+    //         printf("%u ", res[i*N+j]);
     // printf("\n");
 }
 
 int main(){
-    int N = 4;  // Matrix size
-
+    int N = 1000;  // Matrix size
+    
     // Allocate host 
-    float *h_A = new float[N * N];
-    float *h_B = new float[N * N];
-    float *h_C = new float[N * N];
+    uint *h_A = new uint[N * N];
+    uint *h_B = new uint[N * N];
+    uint *h_C = new uint[N * N];
 
     // initialize
     for (int i = 0; i < N * N; ++i){
-        h_A[i] = rand()%5+1 + (rand()%2+2)/10.0;
-        h_B[i] = rand()%10  + (rand()%2+2)/10.0;
+        h_A[i] = rand()%5+1;
+        h_B[i] = rand()%10;
     }
 
     uchar key[] = { 0x00, 0x00, 0x00, 0x00,
@@ -66,7 +66,7 @@ int main(){
     uint d_sched[4*(MAXNR + 1)];
     makeKey(key, keySize << 3, DIR_BOTH, e_sched, d_sched, Nr);
 
-    ltMatrixMultiplication(h_C, h_A, h_B, N, e_sched, d_sched, Nr, true);
+    liteMatMultiplication(h_C, h_A, h_B, N, e_sched, d_sched, Nr, false);
 
-    check(h_A, h_B, h_C, N);    
+    check(h_A, h_B, h_C, N);   
 }

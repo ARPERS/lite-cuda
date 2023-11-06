@@ -1,4 +1,3 @@
-
 ///////////////////////////////////////
 //0. Debugging
 ///////////////////////////////////////
@@ -13,20 +12,20 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 ///////////////////////////////////////
 //0. Utils
 ///////////////////////////////////////
-__device__ unsigned int* floatToUint(float  *input){
+__device__ unsigned int* floatToUint(float  *input){ // single value conversion
     unsigned char  * temp1 = reinterpret_cast<unsigned char  *>(input);       
     unsigned int  * output = reinterpret_cast<unsigned int  *>(temp1);    
     return output;
 }
-__device__ float * uintToFloat(unsigned int  *input){
+__device__ float * uintToFloat(unsigned int  *input){ // single value conversion
     unsigned char  * temp1 = reinterpret_cast<unsigned char  *>(input);       
     float  * output = reinterpret_cast<float  *>(temp1);    
     return output;
 }
-void floatToUintCPU(uint *dest, const float *source, int N) {
+void floatToUintCPU(uint *dest, const float *source, int N) {  // N value conversion
     for(int i=0; i<N; i++) memcpy(&dest[i], &source[i], sizeof(float));
 }
-void uintToFloatCPU(float *dest, const uint *source, int N) {
+void uintToFloatCPU(float *dest, const uint *source, int N) { // N value conversion
     for(int i=0; i<N; i++) memcpy(&dest[i], &source[i], sizeof(uint));
 }
 int padArray(uint* arr, int N) {

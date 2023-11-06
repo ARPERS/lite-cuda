@@ -26,11 +26,29 @@ int main() {
 
     // Initiating values in CPU
     size_t bytes = N * sizeof(uint);
-    uint *x = (uint*)malloc(bytes);
-    uint *y = (uint*)malloc(bytes);
-    uint *z = (uint*)malloc(bytes);
+    uint *x = (uint*)malloc(bytes);  // original value
+    uint *y = (uint*)malloc(bytes);  // to store encrypted x in CPU
+    uint *z = (uint*)malloc(bytes);  // to store decrypted y in CPU
     x[0] = 123; x[1] = 222; x[2]=989; x[3]=275; 
     x[4] = 9123; x[5] = 9222; x[6]=9989; x[7]=9275; 
+
+    // CPU Encrypt
+    cout << "CPU Pln Text: "; for(int i=0;i<N;i++) cout << x[i] << " "; cout << endl;
+    ltEncryptCPU(y, x, e_sched, Nr, N);
+      
+    // CPU Decrypt
+    cout << "CPU Chp Text: "; for(int i=0;i<N;i++) cout << y[i] << " "; cout << endl;
+    ltDecryptCPU(z, y, d_sched, Nr, N);
+    cout << "CPU Pln Text: "; for(int i=0;i<N;i++) cout << z[i] << " "; cout << endl;
+   
+    cout << "-----------\n";
+
+    // Initiating values in GPU
+    uint *d_x, *d_y, *d_z;
+    gpuErrchk( cudaMalloc(&d_x, bytes) );  // original value
+    gpuErrchk( cudaMemcpy(d_x, x, bytes, cudaMemcpyHostToDevice) );
+    gpuErrchk( cudaMalloc(&d_y, bytes) );  // to store encrypted x in GPU 
+    gpuErrchk( cudaMalloc(&d_z, bytes) );  // to store decrypted y in GPU
 
     // Send Key to GPU
     uint *d_e_sched;
@@ -40,26 +58,6 @@ int main() {
     gpuErrchk( cudaMalloc(&d_d_sched, key_size) );
     gpuErrchk( cudaMemcpy(d_e_sched, e_sched, key_size, cudaMemcpyHostToDevice) );
     gpuErrchk( cudaMemcpy(d_d_sched, d_sched, key_size, cudaMemcpyHostToDevice) );
-
-    // CPU Encrypt
-    cout << "CPU Pln Text: "; for(int i=0;i<N;i++) cout << x[i] << " "; cout << endl;
-    for(int i=0; i<N; i+=4)
-      ltEncryptCPU(y+i, x+i, e_sched, Nr, N);
-      
-    // CPU Decrypt
-    cout << "CPU Chp Text: "; for(int i=0;i<N;i++) cout << y[i] << " "; cout << endl;
-    for(int i=0; i<N; i+=4)
-      ltDecryptCPU(z+i, y+i, d_sched, Nr, N);
-    cout << "CPU Pln Text: "; for(int i=0;i<N;i++) cout << z[i] << " "; cout << endl;
-   
-    cout << "-----------\n";
-
-    // Initiating values in GPU
-    uint *d_x, *d_y, *d_z;
-    gpuErrchk( cudaMalloc(&d_x, bytes) ); 
-    gpuErrchk( cudaMemcpy(d_x, x, bytes, cudaMemcpyHostToDevice) );
-    gpuErrchk( cudaMalloc(&d_y, bytes) );
-    gpuErrchk( cudaMalloc(&d_z, bytes) );
 
     cudaMemcpy(x, d_x, bytes, cudaMemcpyDeviceToHost);
     cout << "GPU Pln Text: "; for(int i=0;i<N;i++) cout << x[i] << " "; cout << endl;

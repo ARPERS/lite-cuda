@@ -4,7 +4,7 @@
 
 #include "lite.cu"
 
-#define TILE_SIZE 4
+#define TILE_SIZE 8
 
 using namespace std;
 
@@ -81,14 +81,14 @@ int main(){
                 makeKey(key, keySize << 3, DIR_BOTH, e_sched, d_sched, Nr);
             }
             
-            ltMatrixMultiplication(h_C, h_A, h_B, N, e_sched, d_sched, Nr, tt);
+            liteMatMultiplication(h_C, h_A, h_B, N, e_sched, d_sched, Nr, tt);
             auto t2 = high_resolution_clock::now();
 
             duration<double, std::milli> ms_double = t2 - t1;
             avg_time += ms_double.count();
 
             check(h_A, h_B, h_C, N);    
-            cudaDeviceReset()
+            cudaDeviceReset();
         }
         res_time[tt] = avg_time/runs;
     }

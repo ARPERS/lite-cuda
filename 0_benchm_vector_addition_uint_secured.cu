@@ -14,7 +14,7 @@ __global__ void vectorAdditionUnsecure(uint *result, uint *a, uint *b, int N){
     }
 }
 
-void check(uint *a, uint *b, uint *array, int N){
+int check(uint *a, uint *b, uint *array, int N){
     bool flag = false;
     for(int i = 0; i < N; i++){
         if(array[i] != a[i]+b[i]){
@@ -22,12 +22,12 @@ void check(uint *a, uint *b, uint *array, int N){
         }
     }
     if(!flag){
-        printf("SUCCESS\n");
+        return 1;
         // for(int i = 0; i < N; i++) printf("%u ", a[i]); printf("\n");
         // for(int i = 0; i < N; i++) printf("%u ", b[i]); printf("\n");
         // for(int i = 0; i < N; i++) printf("%u ", array[i]); printf("\n");
     }else{
-        printf("FAIL\n");
+        return 0;
         // for(int i = 0; i < N; i++) printf("%u ", a[i]); printf("\n");
         // for(int i = 0; i < N; i++) printf("%u ", b[i]); printf("\n");
         // for(int i = 0; i < N; i++) printf("%u ", array[i]); printf("\n");
@@ -39,7 +39,7 @@ int main() {
     using std::chrono::duration;
     using std::chrono::milliseconds;
 
-    int N = 1000000; // vector length
+    int N = 100000; // vector length
 
     uint *a = new uint[N];
     uint *b = new uint[N];
@@ -56,8 +56,17 @@ int main() {
     makeKey(key, keySize << 3, DIR_BOTH, e_sched, d_sched, Nr);
 
     int runs = 100;
-    double avg_time[3] = {0,0,0};
-    for(int test=0; test < 3; test++){
+    double avg_time[2] = {0,0};
+    for(int test=0; test < 2; test++){
+        
+        if(test==1){
+            printf("GPU secure.......\n");
+        }else if(test==0){
+            printf("GPU unsecure.....\n");
+        }
+
+        int success = 0;
+            
         for(int i=0;i<runs;i++){
 
             // initiate
@@ -69,34 +78,27 @@ int main() {
             auto t1 = high_resolution_clock::now();
 
             if(test==1){
-                ltVectorAddition(c, a, b, N, e_sched, d_sched, Nr); // secure LITE's function
+                liteAddition(c, a, b, N, e_sched, d_sched, Nr, 256, 128); // secure LITE's function
             }else if(test==0){
                 uint *d_a, *d_b, *d_c;
                 cudaMalloc(&d_a, sizeof(uint)*N); cudaMemcpy(d_a, a, sizeof(uint)*N, cudaMemcpyHostToDevice);
                 cudaMalloc(&d_b, sizeof(uint)*N); cudaMemcpy(d_b, b, sizeof(uint)*N, cudaMemcpyHostToDevice);
                 cudaMalloc(&d_c, sizeof(uint)*N);
-                vectorAdditionUnsecure<<<1024, 128>>>(d_c, d_a, d_b, N);      // unsecure
+                vectorAdditionUnsecure<<<256, 128>>>(d_c, d_a, d_b, N);      // unsecure
                 cudaMemcpy(c, d_c, sizeof(uint)*N, cudaMemcpyDeviceToHost);
                 cudaFree(d_a); cudaFree(d_b); cudaFree(d_c);
-            }else{
-                for(int i=0;i<N;i++){
-                    c[i] = a[i]+b[i];
-                }
             }
 
             auto t2 = high_resolution_clock::now();
             
             duration<double, std::milli> ms_double = t2 - t1;
             avg_time[test] += ms_double.count();
-            printf("%d  ", i); check(a, b, c, N);
+            success += check(a, b, c, N);
             cudaDeviceReset();
         }
+        printf("%d/%d\n", success, runs);
         avg_time[test]/=runs;
     }
     cout << "GPU unsecure: " << avg_time[0]<< " ms\n"
-         << "GPU secure  : " << avg_time[1] << " ms\n"
-         << "CPU         : " << avg_time[2] << " ms\n";
+         << "GPU secure  : " << avg_time[1] << " ms\n";
 }
-
-// unsecure: 66.9532 ms
-// secure  : 157.109 ms

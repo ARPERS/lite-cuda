@@ -1,7 +1,11 @@
 #include <iostream>
 #include <cuda.h>
+#include <chrono>
+#include <vector>
 
 #include "lite.cu"
+
+#define TILE_SIZE 4
 
 using namespace std;
 
@@ -41,18 +45,17 @@ void check(uint *a, uint *b, uint *res, int N){
 }
 
 int main(){
-    int N = 1000;  // Matrix size
+    
+    using chrono::high_resolution_clock;
+    using chrono::duration;
+    using chrono::milliseconds;
+
+    int N = 200;  // Matrix size
     
     // Allocate host 
     uint *h_A = new uint[N * N];
     uint *h_B = new uint[N * N];
     uint *h_C = new uint[N * N];
-
-    // initialize
-    for (int i = 0; i < N * N; ++i){
-        h_A[i] = rand()%5+1;
-        h_B[i] = rand()%10;
-    }
 
     uchar key[] = { 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00,
@@ -64,7 +67,28 @@ int main(){
     uint d_sched[4*(MAXNR + 1)];
     makeKey(key, keySize << 3, DIR_BOTH, e_sched, d_sched, Nr);
 
-    liteMatMultiplication(h_C, h_A, h_B, N, e_sched, d_sched, Nr, true);
 
-    check(h_A, h_B, h_C, N);   
+    vector<double> times;
+    for(int i = 0; i < 10; i++){ // benchmark run        
+        // initialize
+        for (int j = 0; j < N * N; ++j){
+            h_A[j] = rand()%5+1;
+            h_B[j] = rand()%10;
+        }
+        
+        auto t1 = high_resolution_clock::now();
+        liteMatMultiplication(h_C, h_A, h_B, N, e_sched, d_sched, Nr, true);
+        auto t2 = high_resolution_clock::now();
+        duration<double, std::milli> ms_double = t2 - t1;
+        times.push_back(ms_double.count());
+        
+        check(h_A, h_B, h_C, N);   
+        cout << "Time: " << ms_double.count() << " ms" << endl;
+    }
+    // average time
+    double sum = 0;
+    for(int i = 1; i < times.size(); i++){
+        sum += times[i];
+    }
+    printf("Average time: %.3f ms\n", sum/(times.size()-1));
 }

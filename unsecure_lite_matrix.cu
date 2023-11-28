@@ -1,4 +1,4 @@
-#define TILESIZE 4
+// USED FOR BENCHMARKING
 
 ///////////////////////////////////////
 //   MAIN LITE's MATRIX Multiplication
@@ -8,7 +8,7 @@ __global__ void matrixMultiplication(uint *C, uint *A, uint *B, int N,
                                      bool is_float, bool is_secure){
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
-    const int tile_size = TILESIZE;
+    const int tile_size = 4;
 
     // Allocate shared memory for tiles
     __shared__ uint As[tile_size][tile_size];

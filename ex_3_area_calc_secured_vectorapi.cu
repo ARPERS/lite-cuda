@@ -36,13 +36,9 @@ int main() {
     using std::chrono::duration;
     using std::chrono::milliseconds;
 
-    double avg_time = 0; 
-    auto t1 = high_resolution_clock::now();
-
     const int n_points = 299;
     float h_f_x[n_points]; // Host arrays for Float x-coordinates
     float h_f_y[n_points]; // Host arrays for Float y-coordinates 48.555
-
 
     // read from /data/points.txt file
     // the file format has 299 rows contains two float values separated with a space:
@@ -87,21 +83,27 @@ int main() {
     cout << "gridSize: " << gridSize << endl;
     cout << "blockSize: " << blockSize << endl;
 
-    liteMultiplication(d, shifted_h_f_x, h_f_y, n_points, e_sched, d_sched, Nr, gridSize, blockSize);
-    liteMultiplication(c, h_f_x, shifted_h_f_y, n_points, e_sched, d_sched, Nr, gridSize, blockSize);
-    liteSubstraction(d, c, d, n_points, e_sched, d_sched, Nr, gridSize, blockSize);
-    int total = 0;
-    for(int i=0;i<n_points;i++){
-        total+=d[i];
+    double avg_time = 0; 
+    for(int ii=0; ii<50; ii++){
+        auto t1 = high_resolution_clock::now();
+        liteMultiplication(d, shifted_h_f_x, h_f_y, n_points, e_sched, d_sched, Nr, gridSize, blockSize);
+        liteMultiplication(c, h_f_x, shifted_h_f_y, n_points, e_sched, d_sched, Nr, gridSize, blockSize);
+        liteSubstraction(d, c, d, n_points, e_sched, d_sched, Nr, gridSize, blockSize);
+        int total = 0;
+        for(int i=0;i<n_points;i++){
+            total+=d[i];
+        }
+        auto t2 = high_resolution_clock::now();
+
+        std::cout << "Area: " << (float)abs(total)*0.5 << std::endl;
+
+        duration<double, std::milli> ms_double = t2 - t1;
+        avg_time += ms_double.count();
+        std::cout << avg_time << std::endl;
+        cudaDeviceReset();
     }
-
-    auto t2 = high_resolution_clock::now();
-
-    std::cout << "Area: " << (float)abs(total)*0.5 << std::endl;
-
-    duration<double, std::milli> ms_double = t2 - t1;
-    avg_time += ms_double.count();
-    std::cout << avg_time << std::endl;
+    avg_time /= 50;
+    std::cout << "Average time: " << avg_time << " ms" << std::endl;
 
     return 0;
 }

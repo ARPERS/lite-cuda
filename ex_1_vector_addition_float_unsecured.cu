@@ -55,6 +55,7 @@ int main() {
         times.push_back(ms_double.count());
         
         check(a, b, c, N);
+        cudaDeviceReset();
     }
     // average time
     double sum = 0;

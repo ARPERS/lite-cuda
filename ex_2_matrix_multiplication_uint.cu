@@ -5,8 +5,6 @@
 
 #include "lite.cu"
 
-#define TILE_SIZE 4
-
 using namespace std;
 
 void check(uint *a, uint *b, uint *res, int N){
@@ -69,21 +67,22 @@ int main(){
 
 
     vector<double> times;
-    for(int i = 0; i < 10; i++){ // benchmark run        
+    for(int i = 0; i < 50; i++){ // for benchmark run        
         // initialize
         for (int j = 0; j < N * N; ++j){
             h_A[j] = rand()%5+1;
             h_B[j] = rand()%10;
         }
         
-        auto t1 = high_resolution_clock::now();
-        liteMatMultiplication(h_C, h_A, h_B, N, e_sched, d_sched, Nr, true);
+        auto t1 = high_resolution_clock::now(); 
+        liteMatMultiplication(h_C, h_A, h_B, N, e_sched, d_sched, Nr, true);  // change to false for unsecure running (for benchmarking)
         auto t2 = high_resolution_clock::now();
         duration<double, std::milli> ms_double = t2 - t1;
         times.push_back(ms_double.count());
         
         check(h_A, h_B, h_C, N);   
         cout << "Time: " << ms_double.count() << " ms" << endl;
+        cudaDeviceReset();
     }
     // average time
     double sum = 0;

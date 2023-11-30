@@ -15,5 +15,5 @@ using namespace std;
 #include "lite_utils.cu"
 #include "lite_encdec.cu"  
 #include "unsecure_lite_vector.cu"
-#include "unsecure_lite_matrix.cu"
+#include "lite_matrix.cu"
 

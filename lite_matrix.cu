@@ -1,4 +1,4 @@
-#define TILESIZE 4
+#define TILE_SIZE 4
 
 ///////////////////////////////////////
 //   MAIN LITE's MATRIX Multiplication
@@ -8,7 +8,7 @@ __global__ void matrixMultiplication(uint *C, uint *A, uint *B, int N,
                                      bool is_float, bool is_secure){
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
-    const int tile_size = TILESIZE;
+    const int tile_size = 4;
 
     // Allocate shared memory for tiles
     __shared__ uint As[tile_size][tile_size];
@@ -65,7 +65,6 @@ __global__ void matrixMultiplication(uint *C, uint *A, uint *B, int N,
 void ltMatMultiplication(uint *result, uint *A, uint *B, int N,
                             uint *enc_sched, uint *dec_sched, int Nr,
                             bool is_float, bool is_secure){
-    const int TILE_SIZE = 4;
 
     uint *d_a, *d_b, *d_result;
     uint *d_enc_sched; // for secure key

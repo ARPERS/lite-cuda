@@ -1,3 +1,8 @@
+/*
+Example for int matrix multiplication using LITE
+This code include the benchmarking code. See "benchmark run" in main() function.
+*/
+
 #include <iostream>
 #include <cuda.h>
 #include <chrono>
@@ -67,7 +72,7 @@ int main(){
 
 
     vector<double> times;
-    for(int i = 0; i < 50; i++){ // for benchmark run        
+    for(int i = 0; i < 50; i++){ // benchmark run        
         // initialize
         for (int j = 0; j < N * N; ++j){
             h_A[j] = rand()%5+1;

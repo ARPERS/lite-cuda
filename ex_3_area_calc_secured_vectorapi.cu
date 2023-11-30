@@ -1,8 +1,6 @@
 /*
-Calculating secure area computation using
-available vector API from LITE.
-Unfortunately, the final summation that not implemented in LITE
-should run in CPU
+Calculating secure area computation using available vector API from LITE.
+Unfortunately, the final summation that not implemented in LITE should run in CPU
 */
 #include <iostream>
 #include <typeinfo>

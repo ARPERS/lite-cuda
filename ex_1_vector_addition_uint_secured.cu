@@ -1,3 +1,7 @@
+/*
+Example for int vector addition using LITE
+*/
+
 #include <stdio.h>
 #include <iostream>
 #include <typeinfo>

@@ -1,3 +1,7 @@
+/*
+Example for Float Matrix Multiplication using LITE
+*/
+
 #include <iostream>
 #include <cuda.h>
 

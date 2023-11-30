@@ -1,3 +1,8 @@
+/*
+Example for float vector addition using LITE
+This code include the benchmarking code. See "benchmark run" in main() function.
+*/
+
 #include <stdio.h>
 #include <iostream>
 #include <typeinfo>

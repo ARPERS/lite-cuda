@@ -1,3 +1,7 @@
+/*
+Example for encrypting and decrypting 8 int values using LITE
+*/
+
 #include <stdio.h>
 #include <iostream>
 #include <typeinfo>

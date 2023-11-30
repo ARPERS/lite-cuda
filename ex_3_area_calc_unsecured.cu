@@ -1,3 +1,7 @@
+/*
+Calculating area computation unsecure way.
+*/
+
 #include <iostream>
 #include <typeinfo>
 #include <cmath>

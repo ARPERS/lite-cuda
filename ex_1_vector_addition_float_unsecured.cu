@@ -1,4 +1,7 @@
-// USED FOR BENCHMARKING
+/*
+Example for float vector addition unsecure way
+This code include the benchmarking code. See "benchmark run" in main() function.
+*/
 #include <stdio.h>
 #include <iostream>
 #include <typeinfo>

@@ -1,5 +1,7 @@
 # LITE
 
+version 0.1
+
 ## Structure
 
 - Run `make` to compile all examples

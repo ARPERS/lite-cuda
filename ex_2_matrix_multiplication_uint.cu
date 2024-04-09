@@ -80,7 +80,7 @@ int main(){
         }
         
         auto t1 = high_resolution_clock::now(); 
-        liteMatMultiplication(h_C, h_A, h_B, N, e_sched, d_sched, Nr, true);  // change to false for unsecure running (for benchmarking)
+        liteMatMultiplication(h_C, h_A, h_B, N, e_sched, d_sched, Nr, false);  // change to false for unsecure running (for benchmarking)
         auto t2 = high_resolution_clock::now();
         duration<double, std::milli> ms_double = t2 - t1;
         times.push_back(ms_double.count());

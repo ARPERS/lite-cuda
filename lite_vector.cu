@@ -1,6 +1,6 @@
 #define GRIDSIZE 256
 #define BLOCKSIZE 128
-#define BUFFSIZE 128 // to avoid splling data to global memory we only process 128 elements per each block
+#define BUFFSIZE 512 // to avoid splling data to global memory we only process 512 elements per each block in shared memory
 
 ///////////////////////////////////////
 // MAIN Lite's Vector-Vector Processing
@@ -11,7 +11,7 @@ __global__ void vectorProc(uint *d_enc_result, uint *d_enc_a, uint *d_enc_b, int
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     int stride = blockDim.x * gridDim.x;
     
-    if(index < N){
+    if(index*4 < N){
         __shared__ uint d_a[BUFFSIZE];
         __shared__ uint d_b[BUFFSIZE];
         __shared__ uint d_result[BUFFSIZE];
@@ -20,46 +20,40 @@ __global__ void vectorProc(uint *d_enc_result, uint *d_enc_a, uint *d_enc_b, int
         __shared__ float d_f_b[BUFFSIZE];
         __shared__ float d_f_result[BUFFSIZE];
 
-        for(int idx = index; idx < N; idx += stride){
-            // printf("%d %d %d %d %d %d\n", threadIdx.x, blockIdx.x, index, stride, idx, idx*4+3);
+        for(int st = index; st < N; st += stride){
 
-            // GPU Decrypt
-            if(threadIdx.x%4==0){
-                AES_decrypt_gpu(d_a + (idx % BUFFSIZE), d_enc_a + idx, d_dec_sched, Nr); 
-                AES_decrypt_gpu(d_b + (idx % BUFFSIZE), d_enc_b + idx, d_dec_sched, Nr);  
+            AES_decrypt_gpu(d_a + ((st*4) % BUFFSIZE), d_enc_a + (st*4), d_dec_sched, Nr); 
+            AES_decrypt_gpu(d_b + ((st*4) % BUFFSIZE), d_enc_b + (st*4), d_dec_sched, Nr);
+            // __syncthreads();
+
+            for(int i=0;i<4;i++){
+                int idx = threadIdx.x*4+i;
+                if(is_float){
+                    d_f_a[idx] = *uintToFloat(&d_a[idx]);
+                    d_f_b[idx] = *uintToFloat(&d_b[idx]);
+                    if(procType==0)
+                        d_f_result[idx] = d_f_a[idx] + d_f_b[idx];
+                    else if(procType==1)
+                        d_f_result[idx] = d_f_a[idx] * d_f_b[idx];
+                    else if(procType==2)
+                        d_f_result[idx] = d_f_a[idx] - d_f_b[idx];
+                    else if(procType==3)
+                        d_f_result[idx] = d_f_a[idx] / d_f_b[idx];
+                    d_result[idx] = *floatToUint(&d_f_result[idx]);
+                }else{
+                    if(procType==0)
+                        d_result[idx] = d_a[idx] + d_b[idx];
+                    else if(procType==1)
+                        d_result[idx] = d_a[idx] * d_b[idx];
+                    else if(procType==2)
+                        d_result[idx] = d_a[idx] - d_b[idx];
+                    else if(procType==3)
+                        d_result[idx] = d_a[idx] / d_b[idx];
+                }
             }
 
-            __syncthreads();
-
-            if(is_float){
-                d_f_a[threadIdx.x] = *uintToFloat(&d_a[threadIdx.x]);
-                d_f_b[threadIdx.x] = *uintToFloat(&d_b[threadIdx.x]);
-                if(procType==0)
-                    d_f_result[threadIdx.x] = d_f_a[threadIdx.x] + d_f_b[threadIdx.x];
-                else if(procType==1)
-                    d_f_result[threadIdx.x] = d_f_a[threadIdx.x] * d_f_b[threadIdx.x];
-                else if(procType==2)
-                    d_f_result[threadIdx.x] = d_f_a[threadIdx.x] - d_f_b[threadIdx.x];
-                else if(procType==3)
-                    d_f_result[threadIdx.x] = d_f_a[threadIdx.x] / d_f_b[threadIdx.x];
-                d_result[threadIdx.x] = *floatToUint(&d_f_result[threadIdx.x]);
-            }else{
-                if(procType==0)
-                    d_result[threadIdx.x] = d_a[threadIdx.x] + d_b[threadIdx.x];
-                else if(procType==1)
-                    d_result[threadIdx.x] = d_a[threadIdx.x] * d_b[threadIdx.x];
-                else if(procType==2)
-                    d_result[threadIdx.x] = d_a[threadIdx.x] - d_b[threadIdx.x];
-                else if(procType==3)
-                    d_result[threadIdx.x] = d_a[threadIdx.x] / d_b[threadIdx.x];
-            }
-
-            __syncthreads();
-            
-            // GPU Encrypt
-            if(threadIdx.x%4==0){
-                AES_encrypt_gpu(d_enc_result + idx, d_result + (idx % BUFFSIZE), d_enc_sched, Nr);
-            }
+            // __syncthreads();
+            AES_encrypt_gpu(d_enc_result + (st*4), d_result + ((st*4) % BUFFSIZE), d_enc_sched, Nr);
         }
     }
 }

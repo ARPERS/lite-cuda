@@ -2,7 +2,7 @@
 
 #define GRIDSIZE 256
 #define BLOCKSIZE 128
-#define BUFFSIZE 128 // to avoid splling data to global memory we only process 128 elements per each block
+#define BUFFSIZE 512 // to avoid splling data to global memory we only process 128 elements per each block
 
 ///////////////////////////////////////
 // MAIN Lite's Vector-Vector Processing

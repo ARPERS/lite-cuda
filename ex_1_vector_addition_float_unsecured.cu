@@ -34,7 +34,7 @@ int main() {
     using std::chrono::high_resolution_clock;
     using std::chrono::duration;
     using std::chrono::milliseconds;
-    int N = 10000; // vector length
+    int N = 500; // vector length
 
     float *a = new float[N];
     float *b = new float[N];

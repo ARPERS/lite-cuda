@@ -1,13 +1,21 @@
-NVCC = nvcc
-OUTPUT_DIR = bin
+# objects = ex_2_matrix_multiplication_uint.o
 
-EX_FILES = $(wildcard ex*.cu)
-EXECUTABLES = $(patsubst %.cu,$(OUTPUT_DIR)/%,$(EX_FILES))
+# all: $(objects)
+# 	nvcc -arch=sm_86 $(objects) -o app
 
-all: $(EXECUTABLES)
+# %.o: %.cu
+# 	nvcc -arch=sm_86 -I. -dc $< -o $@
 
-$(OUTPUT_DIR)/%: %.cu
-	$(NVCC) -o $@ $<
+# clean:
+# 	rm -f *.o app
+
+objects = matrixMul.o
+
+all: $(objects)
+	nvcc -arch=sm_86 $(objects) -o app
+
+%.o: %.cu
+	nvcc -arch=sm_86 -I. -dc $< -o $@
 
 clean:
-	rm -f $(EXECUTABLES)
+	rm -f *.o app

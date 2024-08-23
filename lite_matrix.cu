@@ -1,4 +1,4 @@
-#define TILE_SIZE 4
+#include "lite_matrix.h"
 
 ///////////////////////////////////////
 //   MAIN LITE's MATRIX Multiplication
@@ -25,6 +25,21 @@ __global__ void matrixMultiplication(uint *C, uint *A, uint *B, int N,
     
         // To ensure all data is loaded
         __syncthreads();
+
+        if(threadIdx.x == 0 && threadIdx.y == 0 && blockIdx.x == 0 && blockIdx.y == 0 && k==0){
+            printf("----Leak Global Memory before compute-------\n");
+            for(int i=0;i<tile_size*tile_size;i++) printf("%u ",As[i/4][i%4]);
+            printf("\n-------------------------------------------\n");
+        }
+        // swap As[0][0] and As[0][1]
+        uint temp = As[0][0];
+        As[0][0] = As[1][0];
+        As[1][0] = temp;
+        if(threadIdx.x == 0 && threadIdx.y == 0 && blockIdx.x == 0 && blockIdx.y == 0 && k==0){
+            printf("----Leak Global Memory before compute AFTER SWAp-------\n");
+            for(int i=0;i<tile_size*tile_size;i++) printf("%u ",As[i/4][i%4]);
+            printf("\n-------------------------------------------\n");
+        }
 
         if(is_secure){
             AES_decrypt_gpu(As[threadIdx.y], As[threadIdx.y], d_dec_sched, Nr); 
@@ -115,10 +130,10 @@ void ltMatMultiplication(uint *result, uint *A, uint *B, int N,
     // GPU -> CPU
     gpuErrchk( cudaMemcpy(result, d_result, size, cudaMemcpyDeviceToHost) );
 
-    // printf("----Leak Global Memory of The Result-------\n");
-    // float *tmp = new float[N*N];
-    // for(int i=0;i<N*N;i++) if(is_float) memcpy(&tmp[i], &result[i], sizeof(uint)),  printf("%.4f ", tmp[i]); else printf("%u ",result[i]); printf("\n");
-    // printf("-------------------------------------------\n");
+    printf("----Leak Global Memory after compute-------\n");
+    float *tmp = new float[N*N];
+    for(int i=0;i<N*N;i++) if(is_float) memcpy(&tmp[i], &result[i], sizeof(uint)),  printf("%.4f ", tmp[i]); else printf("%u ",result[i]); printf("\n");
+    printf("-------------------------------------------\n");
 
     if(is_secure){
         // CPU Decrypt
@@ -127,12 +142,12 @@ void ltMatMultiplication(uint *result, uint *A, uint *B, int N,
 }
 // wrapper matrix multiplication for uint matrix
 void liteMatMultiplication(uint *result, uint *A, uint *B, int N,
-                            uint *enc_sched, uint *dec_sched, int Nr, bool is_secure = true){
+                            uint *enc_sched, uint *dec_sched, int Nr, bool is_secure){
     ltMatMultiplication(result, A, B, N, enc_sched, dec_sched, Nr, false, is_secure);
 }
 // wrapper matrix multiplication for float matrix
 void liteMatMultiplication(float *result, float *A, float *B, int N,
-                            uint *enc_sched, uint *dec_sched, int Nr, bool is_secure = true){
+                            uint *enc_sched, uint *dec_sched, int Nr, bool is_secure){
     // Float array to uint array
     uint *uint_a = new uint[N*N];
     uint *uint_b = new uint[N*N];

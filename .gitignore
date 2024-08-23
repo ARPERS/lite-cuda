@@ -1,3 +1,5 @@
 a
 b
 *_draft.*
+.vscode/*
+*.o

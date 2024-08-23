@@ -1,13 +1,11 @@
-#define GRIDSIZE 256
-#define BLOCKSIZE 128
-#define BUFFSIZE 512 // to avoid splling data to global memory we only process 512 elements per each block in shared memory
+#include "lite_vector.h"
 
 ///////////////////////////////////////
 // MAIN Lite's Vector-Vector Processing
 ///////////////////////////////////////
 __global__ void vectorProc(uint *d_enc_result, uint *d_enc_a, uint *d_enc_b, int N,
                            uint *d_enc_sched, uint *d_dec_sched, int Nr, bool is_float,
-                           uint procType=0){
+                           uint procType){
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     int stride = blockDim.x * gridDim.x;
     
@@ -59,8 +57,8 @@ __global__ void vectorProc(uint *d_enc_result, uint *d_enc_a, uint *d_enc_b, int
 }
 // wrapper vector processing for CPU-GPU comm.
 void ltVectorProc(uint *result, uint *a, uint *b, int N,
-                      uint *enc_sched, uint *dec_sched, int Nr, bool is_float, int procType=0,
-                      int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE){
+                      uint *enc_sched, uint *dec_sched, int Nr, bool is_float, int procType,
+                      int gridSize, int blockSize){
     // Check size, pad so it's divisible by 4
     int padSizeA = padArray(a, N);
     int padSizeB = padArray(b, N);
@@ -122,13 +120,13 @@ void ltVectorProc(uint *result, uint *a, uint *b, int N,
 // front-end wrapper vector addtion for uint array
 void liteAddition(uint *result, uint *a, uint *b, int N,
                       uint *enc_sched, uint *dec_sched, int Nr,
-                      int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE){
+                      int gridSize, int blockSize){
    ltVectorProc(result, a, b, N, enc_sched, dec_sched, Nr, false, 0, gridSize, blockSize);
 }
 // front-end wrapper vector addtion for float array
 void liteAddition(float *result, float *a, float *b, int N,
                       uint *enc_sched, uint *dec_sched, int Nr,
-                      int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE){
+                      int gridSize, int blockSize){
     // Float array to uint array
     uint *uint_a = new uint[N];
     uint *uint_b = new uint[N];
@@ -146,13 +144,13 @@ void liteAddition(float *result, float *a, float *b, int N,
 // front-end wrapper vector multiplication for uint array
 void liteMultiplication(uint *result, uint *a, uint *b, int N,
                       uint *enc_sched, uint *dec_sched, int Nr,
-                      int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE){
+                      int gridSize, int blockSize){
    ltVectorProc(result, a, b, N, enc_sched, dec_sched, Nr, false, 1, gridSize, blockSize);
 }
 // front-end wrapper vector multiplication for float array
 void liteMultiplication(float *result, float *a, float *b, int N,
                       uint *enc_sched, uint *dec_sched, int Nr,
-                      int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE){
+                      int gridSize, int blockSize){
     // Float array to uint array
     uint *uint_a = new uint[N];
     uint *uint_b = new uint[N];
@@ -168,7 +166,7 @@ void liteMultiplication(float *result, float *a, float *b, int N,
 // front-end wrapper vector substraction for uint array
 void liteSubstraction(uint *result, uint *a, uint *b, int N,
                       uint *enc_sched, uint *dec_sched, int Nr,
-                      int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE){
+                      int gridSize, int blockSize){
    ltVectorProc(result, a, b, N, enc_sched, dec_sched, Nr, false, 2, gridSize, blockSize);
 }
 
@@ -176,7 +174,7 @@ void liteSubstraction(uint *result, uint *a, uint *b, int N,
 // front-end wrapper vector addtion for float array
 void liteSubstraction(float *result, float *a, float *b, int N,
                       uint *enc_sched, uint *dec_sched, int Nr,
-                      int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE){
+                      int gridSize, int blockSize){
     // Float array to uint array
     uint *uint_a = new uint[N];
     uint *uint_b = new uint[N];
@@ -194,13 +192,13 @@ void liteSubstraction(float *result, float *a, float *b, int N,
 // front-end wrapper vector division for uint array
 void liteDivision(uint *result, uint *a, uint *b, int N,
                       uint *enc_sched, uint *dec_sched, int Nr,
-                      int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE){
+                      int gridSize, int blockSize){
    ltVectorProc(result, a, b, N, enc_sched, dec_sched, Nr, false, 3, gridSize, blockSize);
 }
 // front-end wrapper vector addtion for float array
 void liteDivision(float *result, float *a, float *b, int N,
                       uint *enc_sched, uint *dec_sched, int Nr,
-                      int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE){
+                      int gridSize, int blockSize){
     // Float array to uint array
     uint *uint_a = new uint[N];
     uint *uint_b = new uint[N];

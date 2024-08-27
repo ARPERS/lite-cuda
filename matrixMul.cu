@@ -116,31 +116,23 @@ main(int argc, char** argv)
         randomInit(h_B, size_B);
 
         // @@@ LITE:CPU Encrypt NxN elements
-        int TOTAL_DIM = MATRIX_SIZE * BLOCK_SIZE * MATRIX_SIZE * BLOCK_SIZE;
-        uint *enc_A = new uint[TOTAL_DIM];
-        uint *enc_B = new uint[TOTAL_DIM];
-        ltEncryptCPU(enc_A, h_A, e_sched, Nr, TOTAL_DIM); 
-        ltEncryptCPU(enc_B, h_B, e_sched, Nr, TOTAL_DIM);
+        uint *enc_A = new uint[size_A];
+        uint *enc_B = new uint[size_B];
+        ltEncryptCPU(enc_A, h_A, e_sched, Nr, size_A); 
+        ltEncryptCPU(enc_B, h_B, e_sched, Nr, size_B);
         // @@@ END-LITE:CPU Encrypt NxN elements
-        printf("Matrix A\n");
-        for(int k = 0; k < HA; k++){
-            for(int j = 0; j < WA; j++){
-                printf("%u ", h_A[k * WA + j]);
-            }
-            printf("\n");
-        }
-        printf("Matrix B\n");
-        for(int k = 0; k < HA; k++){
-            for(int j = 0; j < WA; j++){
-                printf("%u ", h_B[k * WA + j]);
-            }
-            printf("\n");
-        }
-
-        // printf("Encrypted Matrix A\n");
+        
+        // printf("Matrix A\n");
         // for(int k = 0; k < HA; k++){
         //     for(int j = 0; j < WA; j++){
-        //         printf("%u ", enc_a[k * WA + j]);
+        //         printf("%u ", h_A[k * WA + j]);
+        //     }
+        //     printf("\n");
+        // }
+        // printf("Matrix B\n");
+        // for(int k = 0; k < HB; k++){
+        //     for(int j = 0; j < WB; j++){
+        //         printf("%u ", h_B[k * WA + j]);
         //     }
         //     printf("\n");
         // }
@@ -162,19 +154,19 @@ main(int argc, char** argv)
         unsigned int mem_size_C = sizeof(uint) * size_C;
         uint* d_C;
         (cudaMalloc((void**) &d_C, mem_size_C));
+        uint *enc_C = new uint[size_C];
         
         // setup execution parameters
         dim3 threads;
-        threads.x = threads.y = BLOCK_SIZE; // 4
+        threads.x = threads.y = BLOCK_SIZE;
         dim3 grid;
-        grid.x = WC / threads.x; // 20 / 4 = 5
-        grid.y = HC / threads.y; // 20 / 4 = 5
+        grid.x = WC / threads.x;
+        grid.y = HC / threads.y; 
         threads.z = grid.z = 1;
 
-        // matrix size = 20 x 20 = 400
         // printf("Number of blocks: %d\n", grid.x * grid.y); // 25
         // printf("Number of threads per block: %d\n", threads.x * threads.y); // 16
-        // Grid x Threads = 25 x 16 = 400, one thread process one element result matrix
+        // Grid x Threads = 25 x 16 = 400, one thread process one element result C matrix
 
         // execute the kernel
         matrixMulSecure<<< grid, threads >>>(d_C, d_A, d_B, WA, WB, d_enc_sched, d_dec_sched, Nr);
@@ -183,8 +175,11 @@ main(int argc, char** argv)
         uint* h_C = (uint*) malloc(mem_size_C);
 
         // copy result from device to host
-        (cudaMemcpy(h_C, d_C, mem_size_C,
+        (cudaMemcpy(enc_C, d_C, mem_size_C,
                                 cudaMemcpyDeviceToHost) );
+
+
+        ltDecryptCPU(h_C, enc_C, d_sched, Nr, size_C); 
 
         // stop timer
         auto stop = std::chrono::high_resolution_clock::now();

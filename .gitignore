@@ -3,3 +3,5 @@ b
 *_draft.*
 .vscode/*
 *.o
+Parboil/*
+app

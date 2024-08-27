@@ -11,7 +11,7 @@
 
 objects = matrixMul.o
 
-all: $(objects)
+all: clean $(objects)
 	nvcc -arch=sm_86 $(objects) -o app
 
 %.o: %.cu

@@ -1,3 +1,6 @@
+#ifndef AES_CU_
+#define AES_CU_
+
 #include "AES.h"
 #include "tabs/AES_cpu.tab"
 #include <assert.h>
@@ -165,3 +168,5 @@ void makeKey(const uchar *cipherKey, uint keySize, uint dir, uint *e_sched,uint 
         }
     }
 }
+
+#endif

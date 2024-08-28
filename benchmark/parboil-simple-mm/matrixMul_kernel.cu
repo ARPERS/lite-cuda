@@ -52,9 +52,7 @@
 //! wA is A's width and wB is B's width
 ////////////////////////////////////////////////////////////////////////////////
 __global__ void
-matrixMulSecure( uint* C, uint* A, uint* B, int wA, int wB, uint *d_enc_sched, uint *d_dec_sched, int Nr
-            // bool is_float, bool is_secure
-            )
+matrixMul( uint* C, uint* A, uint* B, int wA, int wB)
 {
     // fflush(stdout);
     // Block index
@@ -83,8 +81,6 @@ matrixMulSecure( uint* C, uint* A, uint* B, int wA, int wB, uint *d_enc_sched, u
     // Csub is used to store the element of the block sub-matrix
     // that is computed by the thread
     uint Csub = 0;
-    __shared__ uint Cs[BLOCK_SIZE][BLOCK_SIZE]; // LITE HERE    
-    Cs[tx][ty] = 0;
 
     // Loop over all the sub-matrices of A and B
     // required to compute the block sub-matrix
@@ -115,29 +111,13 @@ matrixMulSecure( uint* C, uint* A, uint* B, int wA, int wB, uint *d_enc_sched, u
         __syncthreads();
 
         // LITE HERE DECRYPT
-        if(tx == 0){
-            AES_decrypt_gpu(As[ty], As[ty], d_dec_sched, Nr); 
-            AES_decrypt_gpu(Bs[ty], Bs[ty], d_dec_sched, Nr); 
-        }
-
-        // if(threadIdx.x == 3 && threadIdx.y == 0 && blockIdx.x == 0 && blockIdx.y == 0){
-        //     printf("----Leak Global Memory before compute-------\n");
-        //     for(int i=0;i<4*4;i++) printf("%u ",Bs[i/4][i%4]);
-        //     printf("\n-------------------------------------------\n");
-        // }
-
-        __syncthreads();
 
         // Multiply the two matrices together;
         // each thread computes one element
         // of the block sub-matrix
         int k;
-        for (k = 0; k < BLOCK_SIZE; ++k){
-            Cs[ty][tx] += As[ty][k] * Bs[k][tx];
-            // if(blockIdx.x == 0 && blockIdx.y == 0){ // for debugging
-            //     printf("(a=%d, b=%d) (Tx %d, Ty %d) (Blx %d, Bly %d), k %d, As[ty][k] %d, Bs[k][tx] %d\n", a,b, tx, ty, bx, by, k, As[ty][k], Bs[k][tx]);
-            // }
-        }
+        for (k = 0; k < BLOCK_SIZE; ++k)
+            Csub += As[ty][k] * Bs[k][tx];
 
     }
 
@@ -147,10 +127,8 @@ matrixMulSecure( uint* C, uint* A, uint* B, int wA, int wB, uint *d_enc_sched, u
     c = wB * BLOCK_SIZE * by + BLOCK_SIZE * bx;
 
     // LITE ENCRYPT HERE SINGLE ELEMENT
-    __syncthreads();
-    AES_encrypt_gpu(Cs[ty], Cs[ty], d_enc_sched, Nr); 
 
-    C[c + wB * ty + tx] = Cs[ty][tx];
+    C[c + wB * ty + tx] = Csub;
 }
 
 #endif // #ifndef _MATRIXMUL_KERNEL_H_

@@ -1,3 +1,6 @@
+#ifndef AES_DEC_CPU__
+#define AES_DEC_CPU__
+
 #include "tabs/AES_cpu.tab"
 
 void AES_decrypt_cpu(uint *pt, const uint *ct, uint *rdk, uint Nr) {
@@ -111,3 +114,5 @@ void AES_decrypt_cpu(uint *pt, const uint *ct, uint *rdk, uint Nr) {
         (cTd4[(t0      ) & 0xff] & 0x000000ff) ^
         rdk[3];
 }
+
+#endif

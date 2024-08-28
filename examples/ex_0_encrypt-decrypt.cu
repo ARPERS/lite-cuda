@@ -6,7 +6,7 @@ Example for encrypting and decrypting 8 int values using LITE
 #include <iostream>
 #include <typeinfo>
 
-#include "lite.cu"
+#include "../lib/lite.cu"
 
 using namespace std;
 

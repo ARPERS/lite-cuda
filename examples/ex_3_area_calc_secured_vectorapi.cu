@@ -7,7 +7,7 @@ Unfortunately, the final summation that not implemented in LITE should run in CP
 #include <cmath>
 
 #include <cuda.h>
-#include "lite.cu"
+#include "../lib/lite.cu"
 
 #include <chrono>
 #include <fstream>

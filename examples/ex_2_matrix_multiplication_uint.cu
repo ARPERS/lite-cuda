@@ -8,7 +8,7 @@ This code include the benchmarking code. See "benchmark run" in main() function.
 #include <chrono>
 #include <vector>
 
-#include "lite.cu"
+#include "../lib/lite.cu"
 
 using namespace std;
 

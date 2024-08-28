@@ -6,13 +6,9 @@ Example for encrypting and decrypting 8 float values using LITE
 #include <iostream>
 #include <typeinfo>
 
-#include "lite.cu"
+#include "../lib/lite.cu"
 
 using namespace std;
-
-__global__ void helloWorld(){
-    printf("Halo from GPU!\n");
-}
 
 int main() {
     int N = 8; // vector length

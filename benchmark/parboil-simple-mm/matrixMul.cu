@@ -58,15 +58,14 @@
 #endif
 
 #include "matrixMul.h"
-#include "lite.cu"
-#include "matrixMul_kernel_lite.cu"
+#include "matrixMul_kernel.cu"
 
 ////////////////////////////////////////////////////////////////////////////////
 // declaration, forward
 void randomInit(uint*, int);
 bool checkResult(uint* C, uint* A, uint* B, int wA, int wB, int wC, int hC);
 
-__global__ void matrixMulSecure(uint* C, uint* A, uint* B, int wA, int wB, uint *d_enc_sched, uint *d_dec_sched, int Nr);
+__global__ void matrixMul(uint* C, uint* A, uint* B, int wA, int wB);
 
 ////////////////////////////////////////////////////////////////////////////////
 //! Run a simple test for CUDA
@@ -74,34 +73,29 @@ __global__ void matrixMulSecure(uint* C, uint* A, uint* B, int wA, int wB, uint 
 int
 main(int argc, char** argv)
 {
+    printf("UNSECURE BENCHMARK\n");
+    printf("WA %d | HA %d | WB %d | HB %d\n", WA, HA, WB, HB);
     // set seed for rand()
     srand(2006);
 
-    // @@@ LITE:create the secure key
-    uchar key[] = { 0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00 };
-    uint keySize = 16;
-    int Nr=10;
-    uint e_sched[4*(MAXNR + 1)];
-    uint d_sched[4*(MAXNR + 1)];
-    makeKey(key, keySize << 3, DIR_BOTH, e_sched, d_sched, Nr);
-    size_t key_size = (4*(MAXNR + 1)) * sizeof(uint);
-    uint *d_enc_sched; // for device secure key
-    uint *d_dec_sched; // for device secure key
-    gpuErrchk( cudaMalloc(&d_enc_sched, key_size) );
-    gpuErrchk( cudaMalloc(&d_dec_sched, key_size) );
-    gpuErrchk( cudaMemcpy(d_enc_sched, e_sched, key_size, cudaMemcpyHostToDevice) );
-    gpuErrchk( cudaMemcpy(d_dec_sched, d_sched, key_size, cudaMemcpyHostToDevice) );
-    // @@@ END-LITE:create the secure key
-
-    const int numRuns = 1;
+    const int numRuns = 20;
     double totalTime = 0.0;
 
-    for (int i = 0; i < numRuns; ++i){
-        // start timer
-        auto start = std::chrono::high_resolution_clock::now();
+    // setup execution parameters
+    dim3 threads;
+    threads.x = threads.y = BLOCK_SIZE;
+    dim3 grid;
+    grid.x = WC / threads.x;
+    grid.y = HC / threads.y; 
+    threads.z = grid.z = 1;
+
+    printf("Number of blocks: %d\n", grid.x * grid.y); // 25
+    printf("Number of threads per block: %d\n", threads.x * threads.y); // 16
+    // Grid x Threads = 25 x 16 = 400, one thread process one element result C matrix
+
+
+    for (int i = 0; i < numRuns; ++i)
+        {
 
         // allocate host memory for matrices A and B
         unsigned int size_A = WA * HA;
@@ -111,82 +105,46 @@ main(int argc, char** argv)
         unsigned int mem_size_B = sizeof(uint) * size_B;
         uint* h_B = (uint*) malloc(mem_size_B);
 
-        // initialize host memory
-        randomInit(h_A, size_A);
-        randomInit(h_B, size_B);
-
-        // @@@ LITE:CPU Encrypt NxN elements
-        uint *enc_A = new uint[size_A];
-        uint *enc_B = new uint[size_B];
-        ltEncryptCPU(enc_A, h_A, e_sched, Nr, size_A); 
-        ltEncryptCPU(enc_B, h_B, e_sched, Nr, size_B);
-        // @@@ END-LITE:CPU Encrypt NxN elements
-        
-        // printf("Matrix A\n");
-        // for(int k = 0; k < HA; k++){
-        //     for(int j = 0; j < WA; j++){
-        //         printf("%u ", h_A[k * WA + j]);
-        //     }
-        //     printf("\n");
-        // }
-        // printf("Matrix B\n");
-        // for(int k = 0; k < HB; k++){
-        //     for(int j = 0; j < WB; j++){
-        //         printf("%u ", h_B[k * WA + j]);
-        //     }
-        //     printf("\n");
-        // }
-
         // allocate device memory
         uint* d_A;
         (cudaMalloc((void**) &d_A, mem_size_A));
         uint* d_B;
         (cudaMalloc((void**) &d_B, mem_size_B));
 
-        // copy host memory to device
-        (cudaMemcpy(d_A, enc_A, mem_size_A,
-                                cudaMemcpyHostToDevice) );
-        (cudaMemcpy(d_B, enc_B, mem_size_B,
-                                cudaMemcpyHostToDevice) );
-
         // allocate device memory for result
         unsigned int size_C = WC * HC;
         unsigned int mem_size_C = sizeof(uint) * size_C;
         uint* d_C;
         (cudaMalloc((void**) &d_C, mem_size_C));
-        uint *enc_C = new uint[size_C];
-        
-        // setup execution parameters
-        dim3 threads;
-        threads.x = threads.y = BLOCK_SIZE;
-        dim3 grid;
-        grid.x = WC / threads.x;
-        grid.y = HC / threads.y; 
-        threads.z = grid.z = 1;
-
-        // printf("Number of blocks: %d\n", grid.x * grid.y); // 25
-        // printf("Number of threads per block: %d\n", threads.x * threads.y); // 16
-        // Grid x Threads = 25 x 16 = 400, one thread process one element result C matrix
-
-        // execute the kernel
-        matrixMulSecure<<< grid, threads >>>(d_C, d_A, d_B, WA, WB, d_enc_sched, d_dec_sched, Nr);
 
         // allocate mem for the result on host side
         uint* h_C = (uint*) malloc(mem_size_C);
 
-        // copy result from device to host
-        (cudaMemcpy(enc_C, d_C, mem_size_C,
-                                cudaMemcpyDeviceToHost) );
+        // initialize host memory
+        randomInit(h_A, size_A);
+        randomInit(h_B, size_B);
 
+        // copy host memory to device
+        (cudaMemcpy(d_A, h_A, mem_size_A,
+                                cudaMemcpyHostToDevice) );
+        (cudaMemcpy(d_B, h_B, mem_size_B,
+                                cudaMemcpyHostToDevice) );
 
-        ltDecryptCPU(h_C, enc_C, d_sched, Nr, size_C); 
-
+        // start timer
+        auto start = std::chrono::high_resolution_clock::now();
+        // execute the kernel
+        matrixMul<<< grid, threads >>>(d_C, d_A, d_B, WA, WB);
         // stop timer
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 
+        // copy result from device to host
+        (cudaMemcpy(h_C, d_C, mem_size_C,
+                                cudaMemcpyDeviceToHost) );
+
         // accumulate execution time
-        totalTime += duration.count();
+        if(i>9)
+            totalTime += duration.count();
 
         // check if the matrix multiplication is correct
         if (checkResult(h_C, h_A, h_B, WA, WB, WC, HC))
@@ -194,7 +152,6 @@ main(int argc, char** argv)
         else
             printf("%d Fail\n",i);
 
-        
         // clean up memory  
         free(h_A);
         free(h_B);
@@ -205,11 +162,10 @@ main(int argc, char** argv)
 
 
     // calculate average execution time
-    double avgTime = totalTime / numRuns;
+    double avgTime = totalTime / (numRuns);
 
     // print average execution time in milliseconds
-    printf("Average execution time over %d runs: %.3f ms\n", numRuns, avgTime / 1000.0);
-
+    printf("Average execution time over %d runs: %.6f ms\n", numRuns, avgTime / 1000.0);
     return 0;
 }
 
@@ -231,7 +187,7 @@ bool checkResult(uint* C, uint* A, uint* B, int wA, int wB, int wC, int hC)
             uint sum = 0;
             for (int k = 0; k < wA; ++k)
                 sum += A[i * wA + k] * B[k * wB + j];
-            if (fabs(C[i * wC + j] - sum) > 1e-5)
+            if (C[i * wC + j] != sum)
                 return false;
         }
     }

@@ -8,7 +8,7 @@ This code include the benchmarking code. See "benchmark run" in main() function.
 #include <typeinfo>
 #include <vector>
 #include <chrono>
-#include "lite.cu"
+#include "../lib/lite.cu"
 
 void check(float *a, float *b, float *array, int N){
     bool flag = false;

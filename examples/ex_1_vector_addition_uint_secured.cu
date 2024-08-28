@@ -6,7 +6,7 @@ Example for int vector addition using LITE
 #include <iostream>
 #include <typeinfo>
 
-#include "lite.cu"
+#include "../lib/lite.cu"
 
 void check(uint *a, uint *b, uint *array, int N){
     bool flag = false;

@@ -1,3 +1,6 @@
+#ifndef AES_DEC_GPU__
+#define AES_DEC_GPU__
+
 #include "tabs/AES_gpu.tab"
 
 __device__
@@ -112,3 +115,5 @@ void AES_decrypt_gpu(uint *pt,const uint *ct, uint *rdk, uint Nr) {
         (dev_cTd4[(t0      ) & 0xff] & 0x000000ff) ^
         rdk[3];
 }
+
+#endif

@@ -1,14 +1,44 @@
+#ifndef AES_ENC_GPU__
+#define AES_ENC_GPU__
+
 #include "util.cu"
-#include "tabs/AES_cpu.tab"
+#include "tabs/AES_gpu.tab"
 #include<iostream>
 using namespace std;
 
-
-void AES_encrypt_cpu(uint *ct, const uint *pt, uint *rek, uint Nr) {
+__device__
+void AES_encrypt_gpu(uint *ct, const uint *pt, uint *rek, uint Nr) {
 
     // int tid = blockIdx.x * blockDim.x + threadIdx.x;
     uint s0, s1, s2, s3, t0, t1, t2, t3;
-    uint *Te0 = cTe0, *Te1 = cTe1, *Te2 = cTe2, *Te3 = cTe3;
+    // printf("%d %d\n",pt[0], Nr);
+    //int y = blockIdx.y * blockDim.y + threadIdx.y;
+    //int i = x + y * gridDim.x * blockDim.x;
+    //int offset = i << 2;
+
+    // #if defined(__CUDA_ARCH__)
+    //     printf("Hello from GPU!\n");
+    //     uint Te0, Te1, Te2, Te3;
+    //     size_t bytes = 256 * sizeof(uint);
+    //     cudaMalloc(&Te0, bytes); 
+    //     cudaMalloc(&Te1, bytes);
+    //     cudaMalloc(&Te2, bytes);
+    //     cudaMalloc(&Te3, bytes);
+    //     cudaMemcpy(Te0, cTe0, bytes, cudaMemcpyHostToDevice);
+    //     cudaMemcpy(Te1, cTe1, bytes, cudaMemcpyHostToDevice);
+    //     cudaMemcpy(Te2, cTe2, bytes, cudaMemcpyHostToDevice);
+    //     cudaMemcpy(Te3, cTe3, bytes, cudaMemcpyHostToDevice);
+    // #else
+    //     printf("Hello from CPU!\n");
+    // #endif
+
+    #ifdef USE_SMEM
+        __shared__ uint Te0[256], Te1[256], Te2[256], Te3[256];
+        load_smem(Te0, cTe0, Te1, cTe1, Te2, cTe2, Te3, cTe3);
+    #else
+        uint *Te0 = dev_cTe0, *Te1 = dev_cTe1, *Te2 = dev_cTe2, *Te3 = dev_cTe3;
+    #endif
+
     /*
      * map byte array block to cipher state
      * and add initial round key:
@@ -120,3 +150,5 @@ void AES_encrypt_cpu(uint *ct, const uint *pt, uint *rek, uint Nr) {
         rek[3];
 
 }
+
+#endif

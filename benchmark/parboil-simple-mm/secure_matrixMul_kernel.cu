@@ -46,13 +46,14 @@
 #endif
 
 #include "matrixMul.h"
+#include "../../lib/lite.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 //! Matrix multiplication on the device: C = A * B
 //! wA is A's width and wB is B's width
 ////////////////////////////////////////////////////////////////////////////////
 __global__ void
-matrixMul( float* C, float* A, float* B, int wA, int wB)
+matrixMulSecure( uint* C, uint* A, uint* B, int wA, int wB, uint *d_enc_sched, uint *d_dec_sched, int Nr)
 {
     // fflush(stdout);
     // Block index
@@ -80,7 +81,8 @@ matrixMul( float* C, float* A, float* B, int wA, int wB)
 
     // Csub is used to store the element of the block sub-matrix
     // that is computed by the thread
-    float Csub = 0;
+    __shared__ uint Cs[BLOCK_SIZE][BLOCK_SIZE]; // LITE HERE    
+    Cs[tx][ty] = 0;
 
     // Loop over all the sub-matrices of A and B
     // required to compute the block sub-matrix
@@ -95,11 +97,11 @@ matrixMul( float* C, float* A, float* B, int wA, int wB)
 
         // Declaration of the shared memory array As used to
         // store the sub-matrix of A
-        __shared__ float As[BLOCK_SIZE][BLOCK_SIZE];
+        __shared__ uint As[BLOCK_SIZE][BLOCK_SIZE];
 
         // Declaration of the shared memory array Bs used to
         // store the sub-matrix of B
-        __shared__ float Bs[BLOCK_SIZE][BLOCK_SIZE];
+        __shared__ uint Bs[BLOCK_SIZE][BLOCK_SIZE];
 
         // Load the matrices from device memory
         // to shared memory; each thread loads
@@ -111,13 +113,20 @@ matrixMul( float* C, float* A, float* B, int wA, int wB)
         __syncthreads();
 
         // LITE HERE DECRYPT
+        AES_decrypt_gpu(As[ty], As[ty], d_dec_sched, Nr); 
+        AES_decrypt_gpu(Bs[ty], Bs[ty], d_dec_sched, Nr); 
+        // __syncthreads();
 
         // Multiply the two matrices together;
         // each thread computes one element
         // of the block sub-matrix
         int k;
-        for (k = 0; k < BLOCK_SIZE; ++k)
-            Csub += As[ty][k] * Bs[k][tx];
+        for (k = 0; k < BLOCK_SIZE; ++k){
+            Cs[ty][tx] += As[ty][k] * Bs[k][tx];
+            // if(blockIdx.x == 0 && blockIdx.y == 0){ // for debugging
+            //     printf("(a=%d, b=%d) (Tx %d, Ty %d) (Blx %d, Bly %d), k %d, As[ty][k] %d, Bs[k][tx] %d\n", a,b, tx, ty, bx, by, k, As[ty][k], Bs[k][tx]);
+            // }
+        }
 
     }
 
@@ -127,8 +136,9 @@ matrixMul( float* C, float* A, float* B, int wA, int wB)
     c = wB * BLOCK_SIZE * by + BLOCK_SIZE * bx;
 
     // LITE ENCRYPT HERE SINGLE ELEMENT
+    AES_encrypt_gpu(Cs[ty], Cs[ty], d_enc_sched, Nr); 
 
-    C[c + wB * ty + tx] = Csub;
+    C[c + wB * ty + tx] = Cs[ty][tx];
 }
 
 #endif // #ifndef _MATRIXMUL_KERNEL_H_

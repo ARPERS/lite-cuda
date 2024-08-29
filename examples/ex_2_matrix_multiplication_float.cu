@@ -10,7 +10,7 @@ Example for Float Matrix Multiplication using LITE
 #include <cstdlib> // for atoi
 #include <cstring> // for strcmp
 
-#include "../lib/lite.cu"
+#include <lite.cu>
 
 using namespace std;
 

@@ -7,7 +7,7 @@ EXECUTABLES = $(patsubst %.cu, $(OUTPUT_DIR)/%, $(EX_FILES))
 all: clean $(EXECUTABLES)
 
 $(OUTPUT_DIR)/%: %.cu
-	$(NVCC) -o $@ $< 
+	$(NVCC) -I. -I/usr/local/cuda_lite -o $@ $< 
 
 clean:
 	rm -f $(EXECUTABLES)

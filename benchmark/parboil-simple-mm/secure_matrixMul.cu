@@ -59,7 +59,7 @@
 
 #include "matrixMul.h"
 #include "secure_matrixMul_kernel.cu"
-#include "../../lib/lite.cu"
+#include <lite.cu>
 
 ////////////////////////////////////////////////////////////////////////////////
 // declaration, forward

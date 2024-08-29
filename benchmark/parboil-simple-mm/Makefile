@@ -15,7 +15,7 @@ secure_app: $(objects2)
 
 # Pattern rule to compile .cu files into .o files
 %.o: %.cu
-	nvcc -arch=sm_86 -I. -dc $< -o $@
+	nvcc -arch=sm_86 -I. -I/usr/local/cuda_lite -dc $< -o $@
 
 # Clean up object files and binaries
 clean:

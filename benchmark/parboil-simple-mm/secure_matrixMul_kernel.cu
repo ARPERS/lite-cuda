@@ -46,7 +46,7 @@
 #endif
 
 #include "matrixMul.h"
-#include "../../lib/lite.h"
+#include <lite.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 //! Matrix multiplication on the device: C = A * B

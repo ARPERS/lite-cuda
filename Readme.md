@@ -5,7 +5,7 @@ version 1.0.0
 ## File Organization:
 
 
-<table><tbody><tr><th><p><strong>LITE/lib/</strong></p></th><th><p>Contains main LITE files:</p><ul><li>`lite_encdec` : contains encryption and decryptin APIs</li><li>lite_matrix : contains matrix multiplication APIs</li><li>lite_vector : contains vector operation APIs</li><li>lite_utils : contains tools used in lite (.e.g, floatToInt())</li></ul></th></tr><tr><td><p><strong>LITE/examples/</strong></p></td><td><p>Contains several files of LITE APIs usage examples. Some files contain unsecure implementation (no LITE) used for comparison (as microbenchmark)</p></td></tr><tr><td><p><strong>LITE/benchmark/</strong></p></td><td><p>Contains secured and unsecured Parboil’s Simple-MM implementation</p></td></tr></tbody></table>
+<table><tbody><tr><th><p><strong>LITE/lib/</strong></p></th><th><p>Contains main LITE files:</p><ul><li>`lite_encdec` : contains encryption and decryptin APIs</li><li>lite_matrix : contains matrix multiplication APIs</li><li>lite_vector : contains vector operation APIs</li><li>lite_utils : contains tools used in LITE (.e.g, floatToInt())</li></ul></th></tr><tr><td><p><strong>LITE/examples/</strong></p></td><td><p>Contains several files of LITE APIs usage examples. Some files contain unsecured implementation (no LITE) used for comparison (as microbenchmark)</p></td></tr><tr><td><p><strong>LITE/benchmark/</strong></p></td><td><p>Contains secured and unsecured Parboil’s Simple-MM implementation</p></td></tr></tbody></table>
 
 ## Setup
 
@@ -28,8 +28,8 @@ Details of all the available APIs can be found in the source codes. Here we show
 **Encryption Decryption API**
 
 ```
-ltEncryptGPU(uint \*ct, uint \*pt, uint \*rek, uint Nr, int N)
-ltEncryptGPU(uint \*ct, float \*pt, uint \*rek, uint Nr, int N)
+ltEncryptGPU(uint *ct, uint *pt, uint *rek, uint Nr, int N)
+ltEncryptGPU(uint *ct, float *pt, uint *rek, uint Nr, int N)
 ```
 Lite encryption API. It encrypts N data in GPU using AES algorithm. N should be divisible by 4
 
@@ -47,8 +47,8 @@ Encrypted plain text is stored in ct
 ___
 
 ```
-ltDecryptGPU(uint \*pt, uint \*ct, uint \*rek, uint Nr, int N)
-ltDecryptGPU(float \*pt, uint \*ct, uint \*rek, uint Nr, int N)
+ltDecryptGPU(uint *pt, uint *ct, uint *rek, uint Nr, int N)
+ltDecryptGPU(float *pt, uint *ct, uint *rek, uint Nr, int N)
 ```
 Lite decryption API. It decrypts N data in GPU using AES algorithm. N should be divisible by 4
 
@@ -65,8 +65,8 @@ Lite decryption API. It decrypts N data in GPU using AES algorithm. N should be 
 Decrypted cipher text is stored in pt
 ___
 ```        
-ltEncryptCPU(uint \*pt, uint \*ct, uint \*rek, uint Nr, int N)
-ltEncryptCPU(float \*pt, uint \*ct, uint \*rek, uint Nr, int N)
+ltEncryptCPU(uint *pt, uint *ct, uint *rek, uint Nr, int N)
+ltEncryptCPU(float *pt, uint *ct, uint *rek, uint Nr, int N)
 ```
 Lite encryption API. It decrypts N data in CPU using AES algorithm. N should be divisible by 4
 
@@ -83,8 +83,8 @@ Lite encryption API. It decrypts N data in CPU using AES algorithm. N should be 
 Encrypted plain text is stored in ct
 ___
 ```
-ltDecryptCPU(uint \*pt, uint \*ct, uint \*rek, uint Nr, int N)
-ltDecryptCPU(float \*pt, uint \*ct, uint \*rek, uint Nr, int N)
+ltDecryptCPU(uint *pt, uint *ct, uint *rek, uint Nr, int N)
+ltDecryptCPU(float *pt, uint *ct, uint *rek, uint Nr, int N)
 ```
 Lite decryption API. It decrypts N data in CPU using AES algorithm. N should be divisible by 4
 
@@ -103,8 +103,8 @@ ___
 
 **Vector Operation API**
 ```
-ltVecAdd (uint \*result, uint \*a, uint \*b, int N, uint \*enc_sched, uint \*dec_sched, int Nr, int gridSize, int blockSize)
-ltVecAdd (float \*result, float \*a, float \*b, int N, uint \*enc_sched, uint \*dec_sched, int Nr, int gridSize, int blockSize)
+ltVecAdd (uint *result, uint *a, uint *b, int N, uint *enc_sched, uint *dec_sched, int Nr, int gridSize, int blockSize)
+ltVecAdd (float *result, float *a, float *b, int N, uint *enc_sched, uint *dec_sched, int Nr, int gridSize, int blockSize)
 ```
 
 Lite API for vector addition. It receives two N data arrays in CPU, a and b, then it will securely do vector addition in GPU. It also apply to other vector operation API: ltVecSub, ltVecMul, ltVecDiv.
@@ -122,10 +122,10 @@ Lite API for vector addition. It receives two N data arrays in CPU, a and b, the
 
 **Matrix Multiplication API**
 ```
-- ltMatMul (uint \*result, uint \*A, uint \*B, int N, uint \*enc_sched, uint \*dec_sched, int Nr)
-- ltMatMul (float \*result, float \*A, float \*B, int N, uint \*enc_sched, uint \*dec_sched, int Nr)
+- ltMatMul (uint *result, uint *A, uint *B, int N, uint *enc_sched, uint *dec_sched, int Nr)
+- ltMatMul (float *result, float *A, float *B, int N, uint *enc_sched, uint *dec_sched, int Nr)
 ```
-Lite API for vector matrix multiplicatoin. It receives two one-dimensional NxN data arrays in CPU, A and B, then it will securely do matrix multiplication in GPU. Grid size and block size will be computed automatically in ltMatrixMultiplication function.
+Lite API for vector matrix multiplication. It receives two one-dimensional NxN data arrays in CPU, A and B, then it will securely do matrix multiplication in GPU. Grid size and block size will be computed automatically in ltMatrixMultiplication function.
 
 *Parameters*
 
@@ -138,4 +138,4 @@ Lite API for vector matrix multiplicatoin. It receives two one-dimensional NxN d
 
 ## Limitation
 
-Current LITE library does not covered all optimizations presented in the paper. That is because most of this optimization are case-based optimizations. We implemented padding for vector operation APIs but not in the matrix multiplication. We also hard coded the size of the shared variables in the matrix multiplication based on AES capability, modification of this size may improve LITE performance, with risk some data can be spilled to the GPU memory if it is too large
+The current LITE library does not cover all optimizations presented in the paper. That is because most of these optimizations are case-based optimizations. We implemented padding for vector operation APIs but not in the matrix multiplication. We also hard-coded the size of the shared variables in the matrix multiplication based on AES capability. Modification of this size may improve LITE performance, with the risk some data can be spilled to the GPU memory if it is too large

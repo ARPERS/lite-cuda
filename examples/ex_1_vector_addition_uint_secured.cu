@@ -51,7 +51,7 @@ int main() {
         b[i] = rand()%10;
     }
 
-    liteAddition(result, a, b, N, e_key, d_key, Nr, 256, 128);
+    ltVecAdd(result, a, b, N, e_key, d_key, Nr, 256, 128);
     
     check(a, b, result, N);
 }

@@ -141,12 +141,12 @@ void ltMatMultiplication(uint *result, uint *A, uint *B, int N,
     }
 }
 // wrapper matrix multiplication for uint matrix
-void liteMatMultiplication(uint *result, uint *A, uint *B, int N,
+void ltMatMul(uint *result, uint *A, uint *B, int N,
                             uint *enc_sched, uint *dec_sched, int Nr, bool is_secure){
     ltMatMultiplication(result, A, B, N, enc_sched, dec_sched, Nr, false, is_secure);
 }
 // wrapper matrix multiplication for float matrix
-void liteMatMultiplication(float *result, float *A, float *B, int N,
+void ltMatMul(float *result, float *A, float *B, int N,
                             uint *enc_sched, uint *dec_sched, int Nr, bool is_secure){
     // Float array to uint array
     uint *uint_a = new uint[N*N];

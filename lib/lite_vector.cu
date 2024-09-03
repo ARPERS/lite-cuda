@@ -118,13 +118,13 @@ void ltVectorProc(uint *result, uint *a, uint *b, int N,
 
 /////// ADDITION
 // front-end wrapper vector addtion for uint array
-void liteAddition(uint *result, uint *a, uint *b, int N,
+void ltVecAdd(uint *result, uint *a, uint *b, int N,
                       uint *enc_sched, uint *dec_sched, int Nr,
                       int gridSize, int blockSize){
    ltVectorProc(result, a, b, N, enc_sched, dec_sched, Nr, false, 0, gridSize, blockSize);
 }
 // front-end wrapper vector addtion for float array
-void liteAddition(float *result, float *a, float *b, int N,
+void ltVecAdd(float *result, float *a, float *b, int N,
                       uint *enc_sched, uint *dec_sched, int Nr,
                       int gridSize, int blockSize){
     // Float array to uint array
@@ -142,13 +142,13 @@ void liteAddition(float *result, float *a, float *b, int N,
 
 /////// MULTIPLICATION
 // front-end wrapper vector multiplication for uint array
-void liteMultiplication(uint *result, uint *a, uint *b, int N,
+void ltVecMul(uint *result, uint *a, uint *b, int N,
                       uint *enc_sched, uint *dec_sched, int Nr,
                       int gridSize, int blockSize){
    ltVectorProc(result, a, b, N, enc_sched, dec_sched, Nr, false, 1, gridSize, blockSize);
 }
 // front-end wrapper vector multiplication for float array
-void liteMultiplication(float *result, float *a, float *b, int N,
+void ltVecMul(float *result, float *a, float *b, int N,
                       uint *enc_sched, uint *dec_sched, int Nr,
                       int gridSize, int blockSize){
     // Float array to uint array
@@ -164,7 +164,7 @@ void liteMultiplication(float *result, float *a, float *b, int N,
     uintToFloatCPU(result, uint_result, N);
 }
 // front-end wrapper vector substraction for uint array
-void liteSubstraction(uint *result, uint *a, uint *b, int N,
+void ltVecSub(uint *result, uint *a, uint *b, int N,
                       uint *enc_sched, uint *dec_sched, int Nr,
                       int gridSize, int blockSize){
    ltVectorProc(result, a, b, N, enc_sched, dec_sched, Nr, false, 2, gridSize, blockSize);
@@ -172,7 +172,7 @@ void liteSubstraction(uint *result, uint *a, uint *b, int N,
 
 /////// SUBSTRACTION
 // front-end wrapper vector addtion for float array
-void liteSubstraction(float *result, float *a, float *b, int N,
+void ltVecSub(float *result, float *a, float *b, int N,
                       uint *enc_sched, uint *dec_sched, int Nr,
                       int gridSize, int blockSize){
     // Float array to uint array
@@ -190,13 +190,13 @@ void liteSubstraction(float *result, float *a, float *b, int N,
 
 /////// DIVISION
 // front-end wrapper vector division for uint array
-void liteDivision(uint *result, uint *a, uint *b, int N,
+void ltVecDiv(uint *result, uint *a, uint *b, int N,
                       uint *enc_sched, uint *dec_sched, int Nr,
                       int gridSize, int blockSize){
    ltVectorProc(result, a, b, N, enc_sched, dec_sched, Nr, false, 3, gridSize, blockSize);
 }
 // front-end wrapper vector addtion for float array
-void liteDivision(float *result, float *a, float *b, int N,
+void ltVecDiv(float *result, float *a, float *b, int N,
                       uint *enc_sched, uint *dec_sched, int Nr,
                       int gridSize, int blockSize){
     // Float array to uint array

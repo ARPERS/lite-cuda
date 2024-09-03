@@ -60,7 +60,7 @@ int main() {
         
         auto t1 = high_resolution_clock::now();
         
-        liteAddition(c, a, b, N, e_sched, d_sched, Nr);
+        ltVecAdd(c, a, b, N, e_sched, d_sched, Nr);
         
         auto t2 = high_resolution_clock::now();
         duration<double, std::milli> ms_double = t2 - t1;

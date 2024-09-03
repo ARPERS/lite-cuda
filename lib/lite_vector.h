@@ -23,35 +23,35 @@ void ltVectorProc(uint *result, uint *a, uint *b, int N,
                   uint *enc_sched, uint *dec_sched, int Nr, bool is_float, int procType=0,
                   int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE);
 
-void liteAddition(uint *result, uint *a, uint *b, int N,
+void ltVecAdd(uint *result, uint *a, uint *b, int N,
                   uint *enc_sched, uint *dec_sched, int Nr,
                   int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE);
 
-void liteAddition(float *result, float *a, float *b, int N,
+void ltVecAdd(float *result, float *a, float *b, int N,
                   uint *enc_sched, uint *dec_sched, int Nr,
                   int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE);
 
-void liteMultiplication(uint *result, uint *a, uint *b, int N,
+void ltVecMul(uint *result, uint *a, uint *b, int N,
                         uint *enc_sched, uint *dec_sched, int Nr,
                         int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE);
 
-void liteMultiplication(float *result, float *a, float *b, int N,
+void ltVecMul(float *result, float *a, float *b, int N,
                         uint *enc_sched, uint *dec_sched, int Nr,
                         int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE);
 
-void liteSubstraction(uint *result, uint *a, uint *b, int N,
+void ltVecSub(uint *result, uint *a, uint *b, int N,
                       uint *enc_sched, uint *dec_sched, int Nr,
                       int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE);
 
-void liteSubstraction(float *result, float *a, float *b, int N,
+void ltVecSub(float *result, float *a, float *b, int N,
                       uint *enc_sched, uint *dec_sched, int Nr,
                       int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE);
 
-void liteDivision(uint *result, uint *a, uint *b, int N,
+void ltVecDiv(uint *result, uint *a, uint *b, int N,
                   uint *enc_sched, uint *dec_sched, int Nr,
                   int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE);
 
-void liteDivision(float *result, float *a, float *b, int N,
+void ltVecDiv(float *result, float *a, float *b, int N,
                   uint *enc_sched, uint *dec_sched, int Nr,
                   int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE);
 

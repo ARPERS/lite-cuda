@@ -110,12 +110,12 @@ void ltVectorProc(uint *result, uint *a, uint *b, int N,
 
 /////// ADDITION
 // front-end wrapper vector addtion for uint array
-void liteAddition(uint *result, uint *a, uint *b, int N,
+void ltVecAdd(uint *result, uint *a, uint *b, int N,
                       int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE){
    ltVectorProc(result, a, b, N, false, 0, gridSize, blockSize);
 }
 // front-end wrapper vector addtion for float array
-void liteAddition(float *result, float *a, float *b, int N,
+void ltVecAdd(float *result, float *a, float *b, int N,
                       int gridSize=GRIDSIZE, int blockSize=BLOCKSIZE){
     // Float array to uint array
     uint *uint_a = new uint[N];

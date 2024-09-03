@@ -94,7 +94,7 @@ int main(int argc, char* argv[]){
 
         auto t1 = high_resolution_clock::now(); 
 
-        liteMatMultiplication(h_C, h_A, h_B, N, e_sched, d_sched, Nr, is_secure); // change to false for unsecure running (for benchmarking)
+        ltMatMul(h_C, h_A, h_B, N, e_sched, d_sched, Nr, is_secure); // change to false for unsecure running (for benchmarking)
         
         auto t2 = high_resolution_clock::now();
         duration<double, std::milli> ms_double = t2 - t1;

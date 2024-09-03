@@ -51,7 +51,7 @@ int main() {
         
         auto t1 = high_resolution_clock::now();
         
-        liteAddition(c, a, b, N);
+        ltVecAdd(c, a, b, N);
         
         auto t2 = high_resolution_clock::now();
         duration<double, std::milli> ms_double = t2 - t1;
